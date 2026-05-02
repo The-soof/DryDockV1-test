@@ -371,3 +371,586 @@ scenarioList.addEventListener("click", (event) => {
 
 renderInputs();
 renderScenario("baseline");
+
+const processSteps = [
+  {
+    id: "step-layup",
+    name: "Composite Layup",
+    cycleTime: 18,
+    machines: 2,
+    shiftHours: 8,
+    scrapRate: 4,
+    materialSource: "purchased"
+  },
+  {
+    id: "step-cnc",
+    name: "CNC Machining",
+    cycleTime: 12,
+    machines: 1,
+    shiftHours: 8,
+    scrapRate: 2,
+    materialSource: "in-house"
+  },
+  {
+    id: "step-assembly",
+    name: "Final Assembly",
+    cycleTime: 9,
+    machines: 2,
+    shiftHours: 7.5,
+    scrapRate: 1.5,
+    materialSource: "purchased"
+  }
+];
+
+const components = [
+  {
+    id: "component-carbon",
+    name: "Carbon pre-preg roll",
+    source: "purchase",
+    cost: 34,
+    leadTime: 2
+  },
+  {
+    id: "component-fixture",
+    name: "Assembly fixture insert",
+    source: "produce",
+    cost: 18,
+    leadTime: 6
+  }
+];
+
+let activeStepId = processSteps[0]?.id || null;
+
+const processForm = document.getElementById("processForm");
+const componentForm = document.getElementById("componentForm");
+const goalForm = document.getElementById("goalForm");
+const analyzeLineButton = document.getElementById("analyzeLineButton");
+const stepTabs = document.getElementById("stepTabs");
+const componentList = document.getElementById("componentList");
+const processTimeline = document.getElementById("processTimeline");
+const stepDetail = document.getElementById("stepDetail");
+const activeStepTitle = document.getElementById("activeStepTitle");
+const activeBottleneckBadge = document.getElementById("activeBottleneckBadge");
+const recommendationList = document.getElementById("recommendationList");
+const goalResponse = document.getElementById("goalResponse");
+const lineStatus = document.getElementById("lineStatus");
+
+const builderMetricEls = {
+  oee: document.getElementById("lineOee"),
+  throughput: document.getElementById("lineThroughput"),
+  downtime: document.getElementById("lineDowntime"),
+  scrap: document.getElementById("lineScrap"),
+  standardActual: document.getElementById("standardActual")
+};
+
+function numberValue(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function formatNumber(value, digits = 1) {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: value % 1 === 0 ? 0 : digits
+  });
+}
+
+function createId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function calculateStepMetrics(step, averageOutput) {
+  const machines = Math.max(1, numberValue(step.machines, 1));
+  const cycleTime = Math.max(0.1, numberValue(step.cycleTime, 1));
+  const shiftHours = clamp(numberValue(step.shiftHours, 8), 0, 24);
+  const scrapRate = clamp(numberValue(step.scrapRate, 0), 0, 100);
+  const rawOutputPerHour = (machines * 60) / cycleTime;
+  const outputPerHour = rawOutputPerHour * (1 - scrapRate / 100);
+  const utilizationRate = averageOutput > 0 ? clamp(averageOutput / rawOutputPerHour, 0, 1) : 0;
+  const availability = clamp(shiftHours / 8, 0, 1);
+  const quality = 1 - scrapRate / 100;
+  const performance = averageOutput > 0 ? clamp(outputPerHour / averageOutput, 0, 1.2) / 1.2 : 0.8;
+
+  // Efficiency score balances utilization, quality loss, and capacity performance into a simple 0-100 manufacturing health score.
+  const efficiencyScore = clamp(
+    Math.round((utilizationRate * 0.38 + quality * 0.34 + availability * 0.16 + performance * 0.12) * 100),
+    0,
+    100
+  );
+
+  return {
+    rawOutputPerHour,
+    outputPerHour,
+    utilizationRate,
+    availability,
+    quality,
+    performance,
+    efficiencyScore
+  };
+}
+
+function analyzeProcesses() {
+  const rawRates = processSteps.map((step) => {
+    const machines = Math.max(1, numberValue(step.machines, 1));
+    const cycleTime = Math.max(0.1, numberValue(step.cycleTime, 1));
+    const scrapRate = clamp(numberValue(step.scrapRate, 0), 0, 100);
+    return ((machines * 60) / cycleTime) * (1 - scrapRate / 100);
+  });
+  const averageOutput = rawRates.length
+    ? rawRates.reduce((sum, rate) => sum + rate, 0) / rawRates.length
+    : 0;
+  const bottleneckThreshold = averageOutput * 0.85;
+  const steps = processSteps.map((step) => {
+    const metrics = calculateStepMetrics(step, averageOutput);
+    return {
+      ...step,
+      metrics,
+      isBottleneck: rawRates.length > 1 && metrics.outputPerHour < bottleneckThreshold
+    };
+  });
+  const lineOutput = steps.length
+    ? Math.min(...steps.map((step) => step.metrics.outputPerHour))
+    : 0;
+  const standardOutput = steps.length
+    ? Math.min(...steps.map((step) => step.metrics.rawOutputPerHour)) * averageShiftHours()
+    : 0;
+  const actualOutput = lineOutput * averageShiftHours();
+  const averageScrap = steps.length
+    ? steps.reduce((sum, step) => sum + numberValue(step.scrapRate), 0) / steps.length
+    : 0;
+  const averageAvailability = steps.length
+    ? steps.reduce((sum, step) => sum + step.metrics.availability, 0) / steps.length
+    : 0;
+  const averagePerformance = steps.length
+    ? steps.reduce((sum, step) => sum + step.metrics.performance, 0) / steps.length
+    : 0;
+  const quality = 1 - averageScrap / 100;
+
+  // OEE follows the standard Availability x Performance x Quality model and uses line-wide averages from configured steps.
+  const oee = clamp(averageAvailability * averagePerformance * quality * 100, 0, 100);
+
+  return {
+    steps,
+    averageOutput,
+    lineOutput,
+    standardOutput,
+    actualOutput,
+    averageScrap,
+    averageAvailability,
+    oee,
+    bottlenecks: steps.filter((step) => step.isBottleneck)
+  };
+}
+
+function averageShiftHours() {
+  if (!processSteps.length) {
+    return 0;
+  }
+
+  return processSteps.reduce((sum, step) => sum + numberValue(step.shiftHours, 0), 0) / processSteps.length;
+}
+
+function renderBuilder() {
+  const analysis = analyzeProcesses();
+  const activeStep = analysis.steps.find((step) => step.id === activeStepId) || analysis.steps[0];
+  activeStepId = activeStep?.id || null;
+
+  renderStepTabs(analysis);
+  renderComponentList();
+  renderBuilderMetrics(analysis);
+  renderTimeline(analysis);
+  renderStepDetail(activeStep);
+  renderRecommendations(analysis);
+}
+
+function renderStepTabs(analysis) {
+  stepTabs.innerHTML = analysis.steps
+    .map(
+      (step, index) => `
+        <button
+          class="step-tab ${step.id === activeStepId ? "active" : ""}"
+          draggable="true"
+          data-step-id="${step.id}"
+          data-index="${index}"
+          title="Double-click to rename. Drag to reorder."
+          type="button"
+        >
+          <span>${step.name}</span>
+          ${step.isBottleneck ? '<strong class="tab-warning">!</strong>' : ""}
+        </button>
+      `
+    )
+    .join("");
+}
+
+function renderBuilderMetrics(analysis) {
+  const downtime = clamp((1 - analysis.averageAvailability) * 100, 0, 100);
+
+  builderMetricEls.oee.textContent = `${formatNumber(analysis.oee)}%`;
+  builderMetricEls.throughput.textContent = `${formatNumber(analysis.lineOutput)}/hr`;
+  builderMetricEls.downtime.textContent = `${formatNumber(downtime)}%`;
+  builderMetricEls.scrap.textContent = `${formatNumber(analysis.averageScrap)}%`;
+  builderMetricEls.standardActual.textContent = `${formatNumber(analysis.standardOutput, 0)} / ${formatNumber(analysis.actualOutput, 0)}`;
+  lineStatus.textContent = analysis.bottlenecks.length
+    ? `${analysis.bottlenecks.length} bottleneck${analysis.bottlenecks.length > 1 ? "s" : ""} flagged`
+    : "Balanced flow";
+}
+
+function renderTimeline(analysis) {
+  const dependencyItems = components.map((component) => {
+    const hours = component.source === "purchase"
+      ? numberValue(component.leadTime) * 24
+      : numberValue(component.leadTime);
+
+    return {
+      id: component.id,
+      label: `${component.name} dependency`,
+      meta: component.source === "purchase" ? `${component.leadTime} day lead` : `${component.leadTime} hr internal cycle`,
+      duration: Math.max(1, hours),
+      type: "dependency"
+    };
+  });
+  const processItems = analysis.steps.map((step) => {
+    const lotSize = 100;
+    const duration = step.metrics.outputPerHour > 0 ? lotSize / step.metrics.outputPerHour : 0;
+
+    return {
+      id: step.id,
+      label: step.name,
+      meta: `${formatNumber(step.metrics.outputPerHour)} units/hr`,
+      duration: Math.max(0.5, duration),
+      type: step.isBottleneck ? "bottleneck" : "process"
+    };
+  });
+  const timelineItems = [...dependencyItems, ...processItems];
+  const totalDuration = timelineItems.reduce((sum, item) => sum + item.duration, 0) || 1;
+  let cursor = 0;
+
+  if (!timelineItems.length) {
+    processTimeline.innerHTML = '<p class="empty-state">Add a process step to generate a schedule.</p>';
+    return;
+  }
+
+  processTimeline.innerHTML = timelineItems
+    .map((item) => {
+      const left = (cursor / totalDuration) * 100;
+      const width = Math.max((item.duration / totalDuration) * 100, 8);
+      cursor += item.duration;
+
+      return `
+        <article class="timeline-row" data-type="${item.type}">
+          <div>
+            <strong>${item.label}</strong>
+            <span>${item.meta}</span>
+          </div>
+          <div class="timeline-track">
+            <span class="timeline-bar" style="left: ${left}%; width: ${Math.min(width, 100 - left)}%;"></span>
+          </div>
+          <em>${formatNumber(item.duration)} hr</em>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderStepDetail(step) {
+  if (!step) {
+    activeStepTitle.textContent = "No process selected";
+    activeBottleneckBadge.classList.add("hidden");
+    stepDetail.innerHTML = '<p class="empty-state">Add a process step to see step-level analysis.</p>';
+    return;
+  }
+
+  activeStepTitle.textContent = step.name;
+  activeBottleneckBadge.classList.toggle("hidden", !step.isBottleneck);
+  stepDetail.innerHTML = `
+    <div class="detail-grid">
+      <div><span>Efficiency score</span><strong>${step.metrics.efficiencyScore}%</strong></div>
+      <div><span>Predicted output</span><strong>${formatNumber(step.metrics.outputPerHour)}/hr</strong></div>
+      <div><span>Utilization</span><strong>${formatNumber(step.metrics.utilizationRate * 100)}%</strong></div>
+      <div><span>Quality yield</span><strong>${formatNumber(step.metrics.quality * 100)}%</strong></div>
+    </div>
+    <form class="builder-form inline-edit-form" id="stepEditForm">
+      <div class="form-grid">
+        <label><span>Cycle time</span><input name="cycleTime" type="number" min="0.1" step="0.1" value="${step.cycleTime}" /></label>
+        <label><span>Machines</span><input name="machines" type="number" min="1" step="1" value="${step.machines}" /></label>
+      </div>
+      <div class="form-grid">
+        <label><span>Shift hours</span><input name="shiftHours" type="number" min="1" max="24" step="0.5" value="${step.shiftHours}" /></label>
+        <label><span>Scrap %</span><input name="scrapRate" type="number" min="0" max="100" step="0.1" value="${step.scrapRate}" /></label>
+      </div>
+      <label>
+        <span>Materials source</span>
+        <select name="materialSource">
+          <option value="purchased" ${step.materialSource === "purchased" ? "selected" : ""}>Purchased</option>
+          <option value="in-house" ${step.materialSource === "in-house" ? "selected" : ""}>Produced in-house</option>
+        </select>
+      </label>
+      <button class="button button-secondary full-button" type="submit">Update Selected Step</button>
+    </form>
+  `;
+}
+
+function componentAlternative(component) {
+  const source = component.source;
+  const cost = numberValue(component.cost);
+  const time = numberValue(component.leadTime);
+
+  if (source === "purchase") {
+    return {
+      source: "produce",
+      cost: cost * 1.18,
+      leadTime: Math.max(4, time * 24 * 0.7),
+      unit: "hours"
+    };
+  }
+
+  return {
+    source: "purchase",
+    cost: cost * 0.88,
+    leadTime: Math.max(1, time / 24),
+    unit: "days"
+  };
+}
+
+function makeVsBuyRecommendations() {
+  // Make-vs-buy compares the entered current source against a lightweight estimated alternative so the static prototype can still flag sourcing tradeoffs.
+  return components.map((component) => {
+    const alternative = componentAlternative(component);
+    const currentTimeHours = component.source === "purchase"
+      ? numberValue(component.leadTime) * 24
+      : numberValue(component.leadTime);
+    const alternativeTimeHours = alternative.source === "purchase"
+      ? alternative.leadTime * 24
+      : alternative.leadTime;
+    const currentCost = numberValue(component.cost);
+    const alternativeCost = alternative.cost;
+
+    if (alternativeCost < currentCost && alternativeTimeHours < currentTimeHours) {
+      return `Switch ${component.name} to ${alternative.source === "purchase" ? "purchased supply" : "internal production"}; the modeled alternative is faster and about ${formatNumber(((currentCost - alternativeCost) / currentCost) * 100)}% cheaper.`;
+    }
+
+    if (component.source === "purchase" && currentTimeHours > 72) {
+      return `Qualify a second supplier for ${component.name}; current purchased lead time adds ${formatNumber(currentTimeHours)} hours before the line can release.`;
+    }
+
+    if (component.source === "produce" && currentTimeHours > 8) {
+      return `Evaluate buying ${component.name} for rush orders; current in-house cycle time consumes ${formatNumber(currentTimeHours)} hours before downstream work can start.`;
+    }
+
+    return `Keep ${component.name} ${component.source === "purchase" ? "purchased" : "in-house"} for now; current source is competitive on cost or lead time.`;
+  });
+}
+
+function renderRecommendations(analysis) {
+  const bottleneckRecommendations = analysis.bottlenecks.flatMap((step) => {
+    const rateGap = Math.max(0, analysis.averageOutput - step.metrics.outputPerHour);
+    const addedMachines = Math.max(1, Math.ceil(rateGap / (60 / Math.max(0.1, step.cycleTime))));
+
+    // Bottleneck detection flags any step materially below the line average and generates specific capacity, labor, cycle-time, and quality actions.
+    return [
+      `Add ${addedMachines} parallel machine/operator${addedMachines > 1 ? "s" : ""} to ${step.name} to close an estimated ${formatNumber(rateGap)} units/hr gap.`,
+      `Reduce ${step.name} cycle time by 10-15% through setup reduction, fixture prep, or pre-kitting.`,
+      `Shift one cross-trained operator into ${step.name} during the first ${formatNumber(step.shiftHours)}-hour shift to protect downstream flow.`,
+      `Cut ${step.name} scrap from ${formatNumber(step.scrapRate)}% toward ${formatNumber(Math.max(0, step.scrapRate - 1))}% with incoming material checks and first-article verification.`
+    ];
+  });
+  const sourcingRecommendations = makeVsBuyRecommendations();
+  const allRecommendations = [...bottleneckRecommendations, ...sourcingRecommendations].slice(0, 8);
+
+  recommendationList.innerHTML = allRecommendations.length
+    ? allRecommendations.map((item) => `<article class="recommendation-card">${item}</article>`).join("")
+    : '<p class="empty-state">No constraints flagged yet. Add process steps or components to generate recommendations.</p>';
+}
+
+function renderComponentList() {
+  componentList.innerHTML = components.length
+    ? components
+        .map(
+          (component) => `
+            <article class="component-card">
+              <strong>${component.name}</strong>
+              <span>${component.source === "purchase" ? "Purchased" : "Produced"} | $${formatNumber(component.cost, 2)} | ${component.leadTime} ${component.source === "purchase" ? "days" : "hrs"}</span>
+            </article>
+          `
+        )
+        .join("")
+    : '<p class="empty-state">No components added yet.</p>';
+}
+
+function updateGoalResponse(goal = {}) {
+  const analysis = analyzeProcesses();
+  const targetRate = numberValue(goal.targetRate);
+  const targetQuantity = numberValue(goal.targetQuantity);
+  const deadline = goal.deadlineDate ? new Date(`${goal.deadlineDate}T23:59:59`) : null;
+  const now = new Date();
+  const availableHours = deadline && deadline > now ? (deadline - now) / 36e5 : 0;
+  const deadlineRate = targetQuantity && availableHours ? targetQuantity / availableHours : 0;
+  const requiredRate = Math.max(targetRate, deadlineRate);
+  const gap = Math.max(0, requiredRate - analysis.lineOutput);
+  const achievable = requiredRate > 0 && analysis.lineOutput >= requiredRate;
+  const bottleneckNames = analysis.bottlenecks.map((step) => step.name).join(", ") || "none";
+  const extraMachines = analysis.bottlenecks.reduce((sum, step) => {
+    const perMachineRate = (60 / Math.max(0.1, numberValue(step.cycleTime))) * (1 - numberValue(step.scrapRate) / 100);
+    return sum + Math.ceil(gap / Math.max(0.1, perMachineRate));
+  }, 0);
+
+  if (!requiredRate) {
+    goalResponse.innerHTML = '<p class="empty-state">Enter a target output rate or a quantity with deadline to generate a goal plan.</p>';
+    return;
+  }
+
+  goalResponse.innerHTML = `
+    <article class="goal-card" data-achievable="${achievable}">
+      <strong>${achievable ? "Goal is achievable" : "Goal needs intervention"}</strong>
+      <p>Current line capacity is ${formatNumber(analysis.lineOutput)} units/hr against a required ${formatNumber(requiredRate)} units/hr.</p>
+      ${gap ? `<p>Gap: ${formatNumber(gap)} units/hr. Primary bottleneck candidates: ${bottleneckNames}.</p>` : ""}
+    </article>
+    <ul class="goal-guidelines">
+      <li>${gap ? `Add about ${Math.max(1, extraMachines)} parallel resource${extraMachines === 1 ? "" : "s"} across bottleneck steps or split work into an added shift.` : "Maintain current staffing and protect material readiness windows."}</li>
+      <li>${averageShiftHours() < 10 ? "Extend the constraint shift toward 10 hours/day before adding weekend work." : "Use current shift coverage and focus on cycle-time reduction before overtime."}</li>
+      <li>Prioritize purchased components with lead times under 48 hours for near-term goals; make long-lead internal parts only when cost advantage is clear.</li>
+      <li>Target the highest-scrap step first; each percentage point of yield improvement flows directly into full-line throughput.</li>
+    </ul>
+  `;
+}
+
+processForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new FormData(processForm);
+  const step = {
+    id: createId("step"),
+    name: formData.get("name").trim(),
+    cycleTime: numberValue(formData.get("cycleTime"), 1),
+    machines: numberValue(formData.get("machines"), 1),
+    shiftHours: numberValue(formData.get("shiftHours"), 8),
+    scrapRate: numberValue(formData.get("scrapRate"), 0),
+    materialSource: formData.get("materialSource")
+  };
+
+  processSteps.push(step);
+  activeStepId = step.id;
+  processForm.reset();
+  renderBuilder();
+});
+
+componentForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new FormData(componentForm);
+  components.push({
+    id: createId("component"),
+    name: formData.get("name").trim(),
+    source: formData.get("source"),
+    cost: numberValue(formData.get("cost"), 0),
+    leadTime: numberValue(formData.get("leadTime"), 0)
+  });
+  componentForm.reset();
+  renderBuilder();
+});
+
+goalForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const formData = new FormData(goalForm);
+  updateGoalResponse({
+    targetRate: formData.get("targetRate"),
+    targetQuantity: formData.get("targetQuantity"),
+    deadlineDate: formData.get("deadlineDate")
+  });
+});
+
+analyzeLineButton.addEventListener("click", () => {
+  renderBuilder();
+  updateGoalResponse({
+    targetRate: document.getElementById("targetRate").value,
+    targetQuantity: document.getElementById("targetQuantity").value,
+    deadlineDate: document.getElementById("deadlineDate").value
+  });
+});
+
+stepTabs.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-step-id]");
+
+  if (!button) {
+    return;
+  }
+
+  activeStepId = button.dataset.stepId;
+  renderBuilder();
+});
+
+stepTabs.addEventListener("dblclick", (event) => {
+  const button = event.target.closest("[data-step-id]");
+
+  if (!button) {
+    return;
+  }
+
+  const step = processSteps.find((item) => item.id === button.dataset.stepId);
+  const nextName = window.prompt("Rename process step", step.name);
+
+  if (nextName?.trim()) {
+    step.name = nextName.trim();
+    renderBuilder();
+  }
+});
+
+stepTabs.addEventListener("dragstart", (event) => {
+  const button = event.target.closest("[data-step-id]");
+
+  if (button) {
+    event.dataTransfer.setData("text/plain", button.dataset.stepId);
+  }
+});
+
+stepTabs.addEventListener("dragover", (event) => {
+  if (event.target.closest("[data-step-id]")) {
+    event.preventDefault();
+  }
+});
+
+stepTabs.addEventListener("drop", (event) => {
+  const target = event.target.closest("[data-step-id]");
+  const draggedId = event.dataTransfer.getData("text/plain");
+
+  if (!target || !draggedId || target.dataset.stepId === draggedId) {
+    return;
+  }
+
+  const fromIndex = processSteps.findIndex((step) => step.id === draggedId);
+  const toIndex = processSteps.findIndex((step) => step.id === target.dataset.stepId);
+  const [draggedStep] = processSteps.splice(fromIndex, 1);
+  processSteps.splice(toIndex, 0, draggedStep);
+  renderBuilder();
+});
+
+stepDetail.addEventListener("submit", (event) => {
+  if (event.target.id !== "stepEditForm") {
+    return;
+  }
+
+  event.preventDefault();
+  const step = processSteps.find((item) => item.id === activeStepId);
+  const formData = new FormData(event.target);
+
+  if (!step) {
+    return;
+  }
+
+  step.cycleTime = numberValue(formData.get("cycleTime"), step.cycleTime);
+  step.machines = numberValue(formData.get("machines"), step.machines);
+  step.shiftHours = numberValue(formData.get("shiftHours"), step.shiftHours);
+  step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
+  step.materialSource = formData.get("materialSource");
+  renderBuilder();
+});
+
+renderBuilder();
+updateGoalResponse();

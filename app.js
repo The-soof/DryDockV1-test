@@ -248,8 +248,22 @@ const inputChips = [
   "Traceability rules"
 ];
 
+const inputDescriptions = {
+  "Jobs / orders": "Jobs define demand, priority, due dates, routing, and the production quantities the schedule must protect.",
+  Operations: "Operations are the process steps, cycle times, and precedence rules that become the line flow.",
+  "Machines / work cells": "Machines and work cells determine parallel capacity, utilization pressure, and outage sensitivity.",
+  "Labor skills & shifts": "Labor coverage controls availability, overtime options, cross-training leverage, and downtime risk.",
+  "Material readiness": "Material readiness gates release timing and can add dependency bars before production work starts.",
+  "Tooling constraints": "Tooling constraints catch fixture conflicts, setup windows, and constrained shared resources.",
+  "Quality holds": "Quality holds feed scrap, rework, inspection delay, and first-article risk into the plan.",
+  "Traceability rules": "Traceability rules protect serialized parts, compliance paths, and program-specific routing requirements."
+};
+
+const selectedInputChips = new Set(["Jobs / orders", "Operations", "Machines / work cells"]);
+
 const scenarioList = document.getElementById("scenarioList");
 const inputChipsEl = document.getElementById("inputChips");
+const inputDetail = document.getElementById("inputDetail");
 const scenarioName = document.getElementById("scenarioName");
 const solverMode = document.getElementById("solverMode");
 const narrative = document.getElementById("narrative");
@@ -270,8 +284,18 @@ const metricEls = {
 
 function renderInputs() {
   inputChipsEl.innerHTML = inputChips
-    .map((chip) => `<div class="chip">${chip}</div>`)
+    .map(
+      (chip) => `
+        <button class="chip ${selectedInputChips.has(chip) ? "active" : ""}" data-input-chip="${chip}" type="button">
+          ${chip}
+        </button>
+      `
+    )
     .join("");
+  const selected = [...selectedInputChips];
+  inputDetail.textContent = selected.length
+    ? selected.map((chip) => inputDescriptions[chip]).join(" ")
+    : "No factory inputs selected. Choose one or more inputs to see how they shape the planning model.";
 }
 
 function renderScenarios(activeId) {
@@ -369,6 +393,24 @@ scenarioList.addEventListener("click", (event) => {
   renderScenario(button.dataset.scenarioId);
 });
 
+inputChipsEl.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-input-chip]");
+
+  if (!button) {
+    return;
+  }
+
+  const chip = button.dataset.inputChip;
+
+  if (selectedInputChips.has(chip)) {
+    selectedInputChips.delete(chip);
+  } else {
+    selectedInputChips.add(chip);
+  }
+
+  renderInputs();
+});
+
 renderInputs();
 renderScenario("baseline");
 
@@ -420,12 +462,14 @@ const components = [
 ];
 
 let activeStepId = processSteps[0]?.id || null;
+let activeAnalysis = { type: "step", id: activeStepId };
 
 const processForm = document.getElementById("processForm");
 const componentForm = document.getElementById("componentForm");
 const goalForm = document.getElementById("goalForm");
 const analyzeLineButton = document.getElementById("analyzeLineButton");
-const stepTabs = document.getElementById("stepTabs");
+const clearLineButton = document.getElementById("clearLineButton");
+const clearComponentsButton = document.getElementById("clearComponentsButton");
 const componentList = document.getElementById("componentList");
 const processTimeline = document.getElementById("processTimeline");
 const stepDetail = document.getElementById("stepDetail");
@@ -560,35 +604,28 @@ function averageShiftHours() {
 
 function renderBuilder() {
   const analysis = analyzeProcesses();
-  const activeStep = analysis.steps.find((step) => step.id === activeStepId) || analysis.steps[0];
-  activeStepId = activeStep?.id || null;
+  const hasActiveStep = activeAnalysis.type === "step" && analysis.steps.some((step) => step.id === activeAnalysis.id);
+  const hasActiveComponent = activeAnalysis.type === "component" && components.some((component) => component.id === activeAnalysis.id);
 
-  renderStepTabs(analysis);
+  if (!hasActiveStep && !hasActiveComponent) {
+    if (analysis.steps[0]) {
+      activeAnalysis = { type: "step", id: analysis.steps[0].id };
+    } else if (components[0]) {
+      activeAnalysis = { type: "component", id: components[0].id };
+    } else {
+      activeAnalysis = { type: "empty", id: null };
+    }
+  }
+
+  activeStepId = activeAnalysis.type === "step" ? activeAnalysis.id : analysis.steps[0]?.id || null;
+  const activeStep = analysis.steps.find((step) => step.id === activeAnalysis.id);
+  const activeComponent = components.find((component) => component.id === activeAnalysis.id);
+
   renderComponentList();
   renderBuilderMetrics(analysis);
   renderTimeline(analysis);
-  renderStepDetail(activeStep);
+  renderAnalysisDetail(activeStep, activeComponent);
   renderRecommendations(analysis);
-}
-
-function renderStepTabs(analysis) {
-  stepTabs.innerHTML = analysis.steps
-    .map(
-      (step, index) => `
-        <button
-          class="step-tab ${step.id === activeStepId ? "active" : ""}"
-          draggable="true"
-          data-step-id="${step.id}"
-          data-index="${index}"
-          title="Double-click to rename. Drag to reorder."
-          type="button"
-        >
-          <span>${step.name}</span>
-          ${step.isBottleneck ? '<strong class="tab-warning">!</strong>' : ""}
-        </button>
-      `
-    )
-    .join("");
 }
 
 function renderBuilderMetrics(analysis) {
@@ -615,7 +652,8 @@ function renderTimeline(analysis) {
       label: `${component.name} dependency`,
       meta: component.source === "purchase" ? `${component.leadTime} day lead` : `${component.leadTime} hr internal cycle`,
       duration: Math.max(1, hours),
-      type: "dependency"
+      type: "dependency",
+      analysisType: "component"
     };
   });
   const processItems = analysis.steps.map((step) => {
@@ -627,7 +665,8 @@ function renderTimeline(analysis) {
       label: step.name,
       meta: `${formatNumber(step.metrics.outputPerHour)} units/hr`,
       duration: Math.max(0.5, duration),
-      type: step.isBottleneck ? "bottleneck" : "process"
+      type: step.isBottleneck ? "bottleneck" : "process",
+      analysisType: "step"
     };
   });
   const timelineItems = [...dependencyItems, ...processItems];
@@ -646,7 +685,14 @@ function renderTimeline(analysis) {
       cursor += item.duration;
 
       return `
-        <article class="timeline-row" data-type="${item.type}">
+        <button
+          class="timeline-row ${activeAnalysis.type === item.analysisType && activeAnalysis.id === item.id ? "active" : ""}"
+          data-type="${item.type}"
+          data-analysis-type="${item.analysisType}"
+          data-analysis-id="${item.id}"
+          draggable="${item.analysisType === "step"}"
+          type="button"
+        >
           <div>
             <strong>${item.label}</strong>
             <span>${item.meta}</span>
@@ -655,10 +701,19 @@ function renderTimeline(analysis) {
             <span class="timeline-bar" style="left: ${left}%; width: ${Math.min(width, 100 - left)}%;"></span>
           </div>
           <em>${formatNumber(item.duration)} hr</em>
-        </article>
+        </button>
       `;
     })
     .join("");
+}
+
+function renderAnalysisDetail(step, component) {
+  if (component) {
+    renderComponentDetail(component);
+    return;
+  }
+
+  renderStepDetail(step);
 }
 
 function renderStepDetail(step) {
@@ -694,8 +749,36 @@ function renderStepDetail(step) {
           <option value="in-house" ${step.materialSource === "in-house" ? "selected" : ""}>Produced in-house</option>
         </select>
       </label>
-      <button class="button button-secondary full-button" type="submit">Update Selected Step</button>
+      <div class="button-row">
+        <button class="button button-secondary full-button" type="submit">Update Selected Step</button>
+        <button class="button button-danger full-button" data-remove-step="${step.id}" type="button">Remove Step</button>
+      </div>
     </form>
+  `;
+}
+
+function renderComponentDetail(component) {
+  const alternative = componentAlternative(component);
+  const currentTime = component.source === "purchase"
+    ? `${component.leadTime} days`
+    : `${component.leadTime} hours`;
+  const alternativeTime = alternative.source === "purchase"
+    ? `${formatNumber(alternative.leadTime)} days`
+    : `${formatNumber(alternative.leadTime)} hours`;
+
+  activeStepTitle.textContent = component.name;
+  activeBottleneckBadge.classList.add("hidden");
+  stepDetail.innerHTML = `
+    <div class="detail-grid">
+      <div><span>Current source</span><strong>${component.source === "purchase" ? "Purchased" : "In-house"}</strong></div>
+      <div><span>Current cost</span><strong>$${formatNumber(component.cost, 2)}</strong></div>
+      <div><span>Current timing</span><strong>${currentTime}</strong></div>
+      <div><span>Modeled alternative</span><strong>${alternative.source === "purchase" ? "Buy" : "Make"}</strong></div>
+    </div>
+    <article class="recommendation-card">
+      Alternative estimate: $${formatNumber(alternative.cost, 2)} per unit with ${alternativeTime} timing. ${makeVsBuyRecommendations().find((item) => item.includes(component.name)) || "Keep monitoring this component as demand changes."}
+    </article>
+    <button class="button button-danger full-button" data-remove-component="${component.id}" type="button">Remove Component</button>
   `;
 }
 
@@ -777,7 +860,7 @@ function renderComponentList() {
         .map(
           (component) => `
             <article class="component-card">
-              <strong>${component.name}</strong>
+              <button data-component-id="${component.id}" type="button">${component.name}</button>
               <span>${component.source === "purchase" ? "Purchased" : "Produced"} | $${formatNumber(component.cost, 2)} | ${component.leadTime} ${component.source === "purchase" ? "days" : "hrs"}</span>
             </article>
           `
@@ -838,6 +921,7 @@ processForm.addEventListener("submit", (event) => {
 
   processSteps.push(step);
   activeStepId = step.id;
+  activeAnalysis = { type: "step", id: step.id };
   processForm.reset();
   renderBuilder();
 });
@@ -845,13 +929,16 @@ processForm.addEventListener("submit", (event) => {
 componentForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const formData = new FormData(componentForm);
-  components.push({
+  const component = {
     id: createId("component"),
     name: formData.get("name").trim(),
     source: formData.get("source"),
     cost: numberValue(formData.get("cost"), 0),
     leadTime: numberValue(formData.get("leadTime"), 0)
-  });
+  };
+
+  components.push(component);
+  activeAnalysis = { type: "component", id: component.id };
   componentForm.reset();
   renderBuilder();
 });
@@ -875,25 +962,28 @@ analyzeLineButton.addEventListener("click", () => {
   });
 });
 
-stepTabs.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-step-id]");
+processTimeline.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-analysis-id]");
 
-  if (!button) {
+  if (!row) {
     return;
   }
 
-  activeStepId = button.dataset.stepId;
+  activeAnalysis = {
+    type: row.dataset.analysisType,
+    id: row.dataset.analysisId
+  };
   renderBuilder();
 });
 
-stepTabs.addEventListener("dblclick", (event) => {
-  const button = event.target.closest("[data-step-id]");
+processTimeline.addEventListener("dblclick", (event) => {
+  const row = event.target.closest('[data-analysis-type="step"]');
 
-  if (!button) {
+  if (!row) {
     return;
   }
 
-  const step = processSteps.find((item) => item.id === button.dataset.stepId);
+  const step = processSteps.find((item) => item.id === row.dataset.analysisId);
   const nextName = window.prompt("Rename process step", step.name);
 
   if (nextName?.trim()) {
@@ -902,32 +992,64 @@ stepTabs.addEventListener("dblclick", (event) => {
   }
 });
 
-stepTabs.addEventListener("dragstart", (event) => {
-  const button = event.target.closest("[data-step-id]");
+processTimeline.addEventListener("dragstart", (event) => {
+  const row = event.target.closest('[data-analysis-type="step"]');
 
-  if (button) {
-    event.dataTransfer.setData("text/plain", button.dataset.stepId);
+  if (row) {
+    event.dataTransfer.setData("text/plain", row.dataset.analysisId);
   }
 });
 
-stepTabs.addEventListener("dragover", (event) => {
-  if (event.target.closest("[data-step-id]")) {
+processTimeline.addEventListener("dragover", (event) => {
+  if (event.target.closest('[data-analysis-type="step"]')) {
     event.preventDefault();
   }
 });
 
-stepTabs.addEventListener("drop", (event) => {
-  const target = event.target.closest("[data-step-id]");
+processTimeline.addEventListener("drop", (event) => {
+  const target = event.target.closest('[data-analysis-type="step"]');
   const draggedId = event.dataTransfer.getData("text/plain");
 
-  if (!target || !draggedId || target.dataset.stepId === draggedId) {
+  if (!target || !draggedId || target.dataset.analysisId === draggedId) {
     return;
   }
 
   const fromIndex = processSteps.findIndex((step) => step.id === draggedId);
-  const toIndex = processSteps.findIndex((step) => step.id === target.dataset.stepId);
+  const toIndex = processSteps.findIndex((step) => step.id === target.dataset.analysisId);
   const [draggedStep] = processSteps.splice(fromIndex, 1);
   processSteps.splice(toIndex, 0, draggedStep);
+  renderBuilder();
+});
+
+componentList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-component-id]");
+
+  if (!button) {
+    return;
+  }
+
+  activeAnalysis = { type: "component", id: button.dataset.componentId };
+  renderBuilder();
+});
+
+clearLineButton.addEventListener("click", () => {
+  processSteps.splice(0, processSteps.length);
+  activeAnalysis = components[0]
+    ? { type: "component", id: components[0].id }
+    : { type: "empty", id: null };
+  renderBuilder();
+  updateGoalResponse({
+    targetRate: document.getElementById("targetRate").value,
+    targetQuantity: document.getElementById("targetQuantity").value,
+    deadlineDate: document.getElementById("deadlineDate").value
+  });
+});
+
+clearComponentsButton.addEventListener("click", () => {
+  components.splice(0, components.length);
+  activeAnalysis = processSteps[0]
+    ? { type: "step", id: processSteps[0].id }
+    : { type: "empty", id: null };
   renderBuilder();
 });
 
@@ -937,7 +1059,7 @@ stepDetail.addEventListener("submit", (event) => {
   }
 
   event.preventDefault();
-  const step = processSteps.find((item) => item.id === activeStepId);
+  const step = processSteps.find((item) => item.id === activeAnalysis.id);
   const formData = new FormData(event.target);
 
   if (!step) {
@@ -950,6 +1072,39 @@ stepDetail.addEventListener("submit", (event) => {
   step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
   step.materialSource = formData.get("materialSource");
   renderBuilder();
+});
+
+stepDetail.addEventListener("click", (event) => {
+  const removeStepButton = event.target.closest("[data-remove-step]");
+  const removeComponentButton = event.target.closest("[data-remove-component]");
+
+  if (removeStepButton) {
+    const index = processSteps.findIndex((step) => step.id === removeStepButton.dataset.removeStep);
+    if (index < 0) {
+      return;
+    }
+    processSteps.splice(index, 1);
+    activeAnalysis = processSteps[index] || processSteps[index - 1]
+      ? { type: "step", id: (processSteps[index] || processSteps[index - 1]).id }
+      : components[0]
+        ? { type: "component", id: components[0].id }
+        : { type: "empty", id: null };
+    renderBuilder();
+  }
+
+  if (removeComponentButton) {
+    const index = components.findIndex((component) => component.id === removeComponentButton.dataset.removeComponent);
+    if (index < 0) {
+      return;
+    }
+    components.splice(index, 1);
+    activeAnalysis = components[index] || components[index - 1]
+      ? { type: "component", id: (components[index] || components[index - 1]).id }
+      : processSteps[0]
+        ? { type: "step", id: processSteps[0].id }
+        : { type: "empty", id: null };
+    renderBuilder();
+  }
 });
 
 renderBuilder();

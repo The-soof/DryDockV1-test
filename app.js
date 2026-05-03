@@ -282,7 +282,23 @@ const metricEls = {
   riskDelta: document.getElementById("metricRiskDelta")
 };
 
+const hasPlannerPage = Boolean(
+  scenarioList &&
+  inputChipsEl &&
+  inputDetail &&
+  scenarioName &&
+  solverMode &&
+  narrative &&
+  scheduleTableBody &&
+  alertList &&
+  resourceList
+);
+
 function renderInputs() {
+  if (!hasPlannerPage) {
+    return;
+  }
+
   inputChipsEl.innerHTML = inputChips
     .map(
       (chip) => `
@@ -299,6 +315,10 @@ function renderInputs() {
 }
 
 function renderScenarios(activeId) {
+  if (!hasPlannerPage) {
+    return;
+  }
+
   scenarioList.innerHTML = scenarios
     .map(
       (scenario) => `
@@ -324,6 +344,10 @@ function statusClass(status) {
 }
 
 function renderScenario(activeId) {
+  if (!hasPlannerPage) {
+    return;
+  }
+
   const scenario = scenarios.find((item) => item.id === activeId) || scenarios[0];
 
   scenarioName.textContent = scenario.name;
@@ -383,36 +407,42 @@ function renderScenario(activeId) {
   renderScenarios(scenario.id);
 }
 
-scenarioList.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-scenario-id]");
-
-  if (!button) {
+function initPlannerPage() {
+  if (!hasPlannerPage) {
     return;
   }
 
-  renderScenario(button.dataset.scenarioId);
-});
+  scenarioList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-scenario-id]");
 
-inputChipsEl.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-input-chip]");
+    if (!button) {
+      return;
+    }
 
-  if (!button) {
-    return;
-  }
+    renderScenario(button.dataset.scenarioId);
+  });
 
-  const chip = button.dataset.inputChip;
+  inputChipsEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-input-chip]");
 
-  if (selectedInputChips.has(chip)) {
-    selectedInputChips.delete(chip);
-  } else {
-    selectedInputChips.add(chip);
-  }
+    if (!button) {
+      return;
+    }
+
+    const chip = button.dataset.inputChip;
+
+    if (selectedInputChips.has(chip)) {
+      selectedInputChips.delete(chip);
+    } else {
+      selectedInputChips.add(chip);
+    }
+
+    renderInputs();
+  });
 
   renderInputs();
-});
-
-renderInputs();
-renderScenario("baseline");
+  renderScenario("baseline");
+}
 
 const processSteps = [
   {
@@ -486,6 +516,28 @@ const builderMetricEls = {
   scrap: document.getElementById("lineScrap"),
   standardActual: document.getElementById("standardActual")
 };
+
+const hasBuilderPage = Boolean(
+  processForm &&
+  componentForm &&
+  goalForm &&
+  analyzeLineButton &&
+  clearLineButton &&
+  clearComponentsButton &&
+  componentList &&
+  processTimeline &&
+  stepDetail &&
+  activeStepTitle &&
+  activeBottleneckBadge &&
+  recommendationList &&
+  goalResponse &&
+  lineStatus &&
+  builderMetricEls.oee &&
+  builderMetricEls.throughput &&
+  builderMetricEls.downtime &&
+  builderMetricEls.scrap &&
+  builderMetricEls.standardActual
+);
 
 function numberValue(value, fallback = 0) {
   const parsed = Number(value);
@@ -603,6 +655,10 @@ function averageShiftHours() {
 }
 
 function renderBuilder() {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const analysis = analyzeProcesses();
   const hasActiveStep = activeAnalysis.type === "step" && analysis.steps.some((step) => step.id === activeAnalysis.id);
   const hasActiveComponent = activeAnalysis.type === "component" && components.some((component) => component.id === activeAnalysis.id);
@@ -629,6 +685,10 @@ function renderBuilder() {
 }
 
 function renderBuilderMetrics(analysis) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const downtime = clamp((1 - analysis.averageAvailability) * 100, 0, 100);
 
   builderMetricEls.oee.textContent = `${formatNumber(analysis.oee)}%`;
@@ -642,6 +702,10 @@ function renderBuilderMetrics(analysis) {
 }
 
 function renderTimeline(analysis) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const dependencyItems = components.map((component) => {
     const hours = component.source === "purchase"
       ? numberValue(component.leadTime) * 24
@@ -708,6 +772,10 @@ function renderTimeline(analysis) {
 }
 
 function renderAnalysisDetail(step, component) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   if (component) {
     renderComponentDetail(component);
     return;
@@ -717,6 +785,10 @@ function renderAnalysisDetail(step, component) {
 }
 
 function renderStepDetail(step) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   if (!step) {
     activeStepTitle.textContent = "No process selected";
     activeBottleneckBadge.classList.add("hidden");
@@ -758,6 +830,10 @@ function renderStepDetail(step) {
 }
 
 function renderComponentDetail(component) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const alternative = componentAlternative(component);
   const currentTime = component.source === "purchase"
     ? `${component.leadTime} days`
@@ -834,6 +910,10 @@ function makeVsBuyRecommendations() {
 }
 
 function renderRecommendations(analysis) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const bottleneckRecommendations = analysis.bottlenecks.flatMap((step) => {
     const rateGap = Math.max(0, analysis.averageOutput - step.metrics.outputPerHour);
     const addedMachines = Math.max(1, Math.ceil(rateGap / (60 / Math.max(0.1, step.cycleTime))));
@@ -855,6 +935,10 @@ function renderRecommendations(analysis) {
 }
 
 function renderComponentList() {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   componentList.innerHTML = components.length
     ? components
         .map(
@@ -870,6 +954,10 @@ function renderComponentList() {
 }
 
 function updateGoalResponse(goal = {}) {
+  if (!hasBuilderPage) {
+    return;
+  }
+
   const analysis = analyzeProcesses();
   const targetRate = numberValue(goal.targetRate);
   const targetQuantity = numberValue(goal.targetQuantity);
@@ -906,206 +994,215 @@ function updateGoalResponse(goal = {}) {
   `;
 }
 
-processForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(processForm);
-  const step = {
-    id: createId("step"),
-    name: formData.get("name").trim(),
-    cycleTime: numberValue(formData.get("cycleTime"), 1),
-    machines: numberValue(formData.get("machines"), 1),
-    shiftHours: numberValue(formData.get("shiftHours"), 8),
-    scrapRate: numberValue(formData.get("scrapRate"), 0),
-    materialSource: formData.get("materialSource")
-  };
-
-  processSteps.push(step);
-  activeStepId = step.id;
-  activeAnalysis = { type: "step", id: step.id };
-  processForm.reset();
-  renderBuilder();
-});
-
-componentForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(componentForm);
-  const component = {
-    id: createId("component"),
-    name: formData.get("name").trim(),
-    source: formData.get("source"),
-    cost: numberValue(formData.get("cost"), 0),
-    leadTime: numberValue(formData.get("leadTime"), 0)
-  };
-
-  components.push(component);
-  activeAnalysis = { type: "component", id: component.id };
-  componentForm.reset();
-  renderBuilder();
-});
-
-goalForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const formData = new FormData(goalForm);
-  updateGoalResponse({
-    targetRate: formData.get("targetRate"),
-    targetQuantity: formData.get("targetQuantity"),
-    deadlineDate: formData.get("deadlineDate")
-  });
-});
-
-analyzeLineButton.addEventListener("click", () => {
-  renderBuilder();
-  updateGoalResponse({
-    targetRate: document.getElementById("targetRate").value,
-    targetQuantity: document.getElementById("targetQuantity").value,
-    deadlineDate: document.getElementById("deadlineDate").value
-  });
-});
-
-processTimeline.addEventListener("click", (event) => {
-  const row = event.target.closest("[data-analysis-id]");
-
-  if (!row) {
+function initBuilderPage() {
+  if (!hasBuilderPage) {
     return;
   }
 
-  activeAnalysis = {
-    type: row.dataset.analysisType,
-    id: row.dataset.analysisId
-  };
-  renderBuilder();
-});
-
-processTimeline.addEventListener("dblclick", (event) => {
-  const row = event.target.closest('[data-analysis-type="step"]');
-
-  if (!row) {
-    return;
-  }
-
-  const step = processSteps.find((item) => item.id === row.dataset.analysisId);
-  const nextName = window.prompt("Rename process step", step.name);
-
-  if (nextName?.trim()) {
-    step.name = nextName.trim();
-    renderBuilder();
-  }
-});
-
-processTimeline.addEventListener("dragstart", (event) => {
-  const row = event.target.closest('[data-analysis-type="step"]');
-
-  if (row) {
-    event.dataTransfer.setData("text/plain", row.dataset.analysisId);
-  }
-});
-
-processTimeline.addEventListener("dragover", (event) => {
-  if (event.target.closest('[data-analysis-type="step"]')) {
+  processForm.addEventListener("submit", (event) => {
     event.preventDefault();
-  }
-});
+    const formData = new FormData(processForm);
+    const step = {
+      id: createId("step"),
+      name: formData.get("name").trim(),
+      cycleTime: numberValue(formData.get("cycleTime"), 1),
+      machines: numberValue(formData.get("machines"), 1),
+      shiftHours: numberValue(formData.get("shiftHours"), 8),
+      scrapRate: numberValue(formData.get("scrapRate"), 0),
+      materialSource: formData.get("materialSource")
+    };
 
-processTimeline.addEventListener("drop", (event) => {
-  const target = event.target.closest('[data-analysis-type="step"]');
-  const draggedId = event.dataTransfer.getData("text/plain");
-
-  if (!target || !draggedId || target.dataset.analysisId === draggedId) {
-    return;
-  }
-
-  const fromIndex = processSteps.findIndex((step) => step.id === draggedId);
-  const toIndex = processSteps.findIndex((step) => step.id === target.dataset.analysisId);
-  const [draggedStep] = processSteps.splice(fromIndex, 1);
-  processSteps.splice(toIndex, 0, draggedStep);
-  renderBuilder();
-});
-
-componentList.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-component-id]");
-
-  if (!button) {
-    return;
-  }
-
-  activeAnalysis = { type: "component", id: button.dataset.componentId };
-  renderBuilder();
-});
-
-clearLineButton.addEventListener("click", () => {
-  processSteps.splice(0, processSteps.length);
-  activeAnalysis = components[0]
-    ? { type: "component", id: components[0].id }
-    : { type: "empty", id: null };
-  renderBuilder();
-  updateGoalResponse({
-    targetRate: document.getElementById("targetRate").value,
-    targetQuantity: document.getElementById("targetQuantity").value,
-    deadlineDate: document.getElementById("deadlineDate").value
+    processSteps.push(step);
+    activeStepId = step.id;
+    activeAnalysis = { type: "step", id: step.id };
+    processForm.reset();
+    renderBuilder();
   });
-});
 
-clearComponentsButton.addEventListener("click", () => {
-  components.splice(0, components.length);
-  activeAnalysis = processSteps[0]
-    ? { type: "step", id: processSteps[0].id }
-    : { type: "empty", id: null };
-  renderBuilder();
-});
+  componentForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(componentForm);
+    const component = {
+      id: createId("component"),
+      name: formData.get("name").trim(),
+      source: formData.get("source"),
+      cost: numberValue(formData.get("cost"), 0),
+      leadTime: numberValue(formData.get("leadTime"), 0)
+    };
 
-stepDetail.addEventListener("submit", (event) => {
-  if (event.target.id !== "stepEditForm") {
-    return;
-  }
+    components.push(component);
+    activeAnalysis = { type: "component", id: component.id };
+    componentForm.reset();
+    renderBuilder();
+  });
 
-  event.preventDefault();
-  const step = processSteps.find((item) => item.id === activeAnalysis.id);
-  const formData = new FormData(event.target);
+  goalForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(goalForm);
+    updateGoalResponse({
+      targetRate: formData.get("targetRate"),
+      targetQuantity: formData.get("targetQuantity"),
+      deadlineDate: formData.get("deadlineDate")
+    });
+  });
 
-  if (!step) {
-    return;
-  }
+  analyzeLineButton.addEventListener("click", () => {
+    renderBuilder();
+    updateGoalResponse({
+      targetRate: document.getElementById("targetRate").value,
+      targetQuantity: document.getElementById("targetQuantity").value,
+      deadlineDate: document.getElementById("deadlineDate").value
+    });
+  });
 
-  step.cycleTime = numberValue(formData.get("cycleTime"), step.cycleTime);
-  step.machines = numberValue(formData.get("machines"), step.machines);
-  step.shiftHours = numberValue(formData.get("shiftHours"), step.shiftHours);
-  step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
-  step.materialSource = formData.get("materialSource");
-  renderBuilder();
-});
+  processTimeline.addEventListener("click", (event) => {
+    const row = event.target.closest("[data-analysis-id]");
 
-stepDetail.addEventListener("click", (event) => {
-  const removeStepButton = event.target.closest("[data-remove-step]");
-  const removeComponentButton = event.target.closest("[data-remove-component]");
-
-  if (removeStepButton) {
-    const index = processSteps.findIndex((step) => step.id === removeStepButton.dataset.removeStep);
-    if (index < 0) {
+    if (!row) {
       return;
     }
-    processSteps.splice(index, 1);
-    activeAnalysis = processSteps[index] || processSteps[index - 1]
-      ? { type: "step", id: (processSteps[index] || processSteps[index - 1]).id }
-      : components[0]
-        ? { type: "component", id: components[0].id }
-        : { type: "empty", id: null };
-    renderBuilder();
-  }
 
-  if (removeComponentButton) {
-    const index = components.findIndex((component) => component.id === removeComponentButton.dataset.removeComponent);
-    if (index < 0) {
+    activeAnalysis = {
+      type: row.dataset.analysisType,
+      id: row.dataset.analysisId
+    };
+    renderBuilder();
+  });
+
+  processTimeline.addEventListener("dblclick", (event) => {
+    const row = event.target.closest('[data-analysis-type="step"]');
+
+    if (!row) {
       return;
     }
-    components.splice(index, 1);
-    activeAnalysis = components[index] || components[index - 1]
-      ? { type: "component", id: (components[index] || components[index - 1]).id }
-      : processSteps[0]
-        ? { type: "step", id: processSteps[0].id }
-        : { type: "empty", id: null };
-    renderBuilder();
-  }
-});
 
-renderBuilder();
-updateGoalResponse();
+    const step = processSteps.find((item) => item.id === row.dataset.analysisId);
+    const nextName = window.prompt("Rename process step", step.name);
+
+    if (nextName?.trim()) {
+      step.name = nextName.trim();
+      renderBuilder();
+    }
+  });
+
+  processTimeline.addEventListener("dragstart", (event) => {
+    const row = event.target.closest('[data-analysis-type="step"]');
+
+    if (row) {
+      event.dataTransfer.setData("text/plain", row.dataset.analysisId);
+    }
+  });
+
+  processTimeline.addEventListener("dragover", (event) => {
+    if (event.target.closest('[data-analysis-type="step"]')) {
+      event.preventDefault();
+    }
+  });
+
+  processTimeline.addEventListener("drop", (event) => {
+    const target = event.target.closest('[data-analysis-type="step"]');
+    const draggedId = event.dataTransfer.getData("text/plain");
+
+    if (!target || !draggedId || target.dataset.analysisId === draggedId) {
+      return;
+    }
+
+    const fromIndex = processSteps.findIndex((step) => step.id === draggedId);
+    const toIndex = processSteps.findIndex((step) => step.id === target.dataset.analysisId);
+    const [draggedStep] = processSteps.splice(fromIndex, 1);
+    processSteps.splice(toIndex, 0, draggedStep);
+    renderBuilder();
+  });
+
+  componentList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-component-id]");
+
+    if (!button) {
+      return;
+    }
+
+    activeAnalysis = { type: "component", id: button.dataset.componentId };
+    renderBuilder();
+  });
+
+  clearLineButton.addEventListener("click", () => {
+    processSteps.splice(0, processSteps.length);
+    activeAnalysis = components[0]
+      ? { type: "component", id: components[0].id }
+      : { type: "empty", id: null };
+    renderBuilder();
+    updateGoalResponse({
+      targetRate: document.getElementById("targetRate").value,
+      targetQuantity: document.getElementById("targetQuantity").value,
+      deadlineDate: document.getElementById("deadlineDate").value
+    });
+  });
+
+  clearComponentsButton.addEventListener("click", () => {
+    components.splice(0, components.length);
+    activeAnalysis = processSteps[0]
+      ? { type: "step", id: processSteps[0].id }
+      : { type: "empty", id: null };
+    renderBuilder();
+  });
+
+  stepDetail.addEventListener("submit", (event) => {
+    if (event.target.id !== "stepEditForm") {
+      return;
+    }
+
+    event.preventDefault();
+    const step = processSteps.find((item) => item.id === activeAnalysis.id);
+    const formData = new FormData(event.target);
+
+    if (!step) {
+      return;
+    }
+
+    step.cycleTime = numberValue(formData.get("cycleTime"), step.cycleTime);
+    step.machines = numberValue(formData.get("machines"), step.machines);
+    step.shiftHours = numberValue(formData.get("shiftHours"), step.shiftHours);
+    step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
+    step.materialSource = formData.get("materialSource");
+    renderBuilder();
+  });
+
+  stepDetail.addEventListener("click", (event) => {
+    const removeStepButton = event.target.closest("[data-remove-step]");
+    const removeComponentButton = event.target.closest("[data-remove-component]");
+
+    if (removeStepButton) {
+      const index = processSteps.findIndex((step) => step.id === removeStepButton.dataset.removeStep);
+      if (index < 0) {
+        return;
+      }
+      processSteps.splice(index, 1);
+      activeAnalysis = processSteps[index] || processSteps[index - 1]
+        ? { type: "step", id: (processSteps[index] || processSteps[index - 1]).id }
+        : components[0]
+          ? { type: "component", id: components[0].id }
+          : { type: "empty", id: null };
+      renderBuilder();
+    }
+
+    if (removeComponentButton) {
+      const index = components.findIndex((component) => component.id === removeComponentButton.dataset.removeComponent);
+      if (index < 0) {
+        return;
+      }
+      components.splice(index, 1);
+      activeAnalysis = components[index] || components[index - 1]
+        ? { type: "component", id: (components[index] || components[index - 1]).id }
+        : processSteps[0]
+          ? { type: "step", id: processSteps[0].id }
+          : { type: "empty", id: null };
+      renderBuilder();
+    }
+  });
+
+  renderBuilder();
+  updateGoalResponse();
+}
+
+initPlannerPage();
+initBuilderPage();

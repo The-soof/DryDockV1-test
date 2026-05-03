@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dry Dock V1 - Planning Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="subpage-hero">
+        <nav class="topbar">
+          <div class="brand-lockup">
+            <div class="brand-mark">DD</div>
+            <div>
+              <p class="eyebrow">Industrial Decision Intelligence</p>
+              <h1>Planning Console</h1>
+            </div>
+          </div>
+          <div class="topbar-copy nav-links">
+            <a href="./index.html">Home</a>
+            <a href="./line-builder.html">Line Builder</a>
+          </div>
+        </nav>
+
+        <section class="subpage-intro">
+          <p class="section-kicker">Scenario simulator</p>
+          <h2>Run disruption scenarios and inspect how the schedule flexes under pressure.</h2>
+          <p class="hero-text">
+            This workspace is focused on what planners need in the moment: compare shock
+            scenarios, inspect downstream impact, and understand the reasoning behind the
+            recommended schedule.
+          </p>
+          <div class="hero-actions">
+            <a href="./line-builder.html" class="button button-secondary">Go to line builder</a>
+          </div>
+        </section>
+      </header>
+
+      <main>
+        <section class="planner page-surface" id="planner">
+          <div class="section-heading planner-heading">
+            <div>
+              <p class="section-kicker">Planning console</p>
+              <h3>Finite-capacity scheduling for high-constraint manufacturing</h3>
+            </div>
+            <div class="planner-badge">
+              <span class="live-dot"></span>
+              <span id="scenarioName">Baseline production plan</span>
+            </div>
+          </div>
+
+          <div class="planner-layout">
+            <aside class="control-panel">
+              <div class="control-card">
+                <p class="control-title">Scenario simulator</p>
+                <p class="control-copy">
+                  Toggle production shocks to see how Dry Dock replans jobs, shifts
+                  bottlenecks, and preserves priority orders.
+                </p>
+                <div class="scenario-list" id="scenarioList"></div>
+              </div>
+
+              <div class="control-card">
+                <p class="control-title">Factory inputs</p>
+                <div class="chip-list" id="inputChips"></div>
+                <p class="input-detail" id="inputDetail">
+                  Select an input to see how it affects the planning model.
+                </p>
+              </div>
+
+              <div class="control-card">
+                <p class="control-title">Optimization stack</p>
+                <ul class="stack-list">
+                  <li>Constraint normalization layer</li>
+                  <li>Priority-aware finite capacity scheduler</li>
+                  <li>Hybrid quantum search for conflict-heavy resource clusters</li>
+                  <li>Planner explanation and KPI comparison engine</li>
+                </ul>
+              </div>
+            </aside>
+
+            <div class="planner-main">
+              <section class="dashboard-grid">
+                <article class="metric-card">
+                  <span>On-time completion</span>
+                  <strong id="metricOnTime">92%</strong>
+                  <p id="metricOnTimeDelta">+4 pts vs manual baseline</p>
+                </article>
+                <article class="metric-card">
+                  <span>Machine utilization</span>
+                  <strong id="metricUtilization">78%</strong>
+                  <p id="metricUtilizationDelta">+9 pts on constrained cells</p>
+                </article>
+                <article class="metric-card">
+                  <span>Reschedule time</span>
+                  <strong id="metricReschedule">12 min</strong>
+                  <p id="metricRescheduleDelta">41% faster than current workflow</p>
+                </article>
+                <article class="metric-card">
+                  <span>Bottleneck risk</span>
+                  <strong id="metricRisk">Moderate</strong>
+                  <p id="metricRiskDelta">Composite layup remains the pacing resource</p>
+                </article>
+              </section>
+
+              <section class="content-grid">
+                <article class="surface schedule-surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Recommended schedule</p>
+                      <h4>Shift-by-shift routing plan</h4>
+                    </div>
+                    <span class="surface-pill" id="solverMode">Classical baseline + hybrid assist</span>
+                  </div>
+                  <div class="table-shell">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Job</th>
+                          <th>Part / program</th>
+                          <th>Priority</th>
+                          <th>Assigned cell</th>
+                          <th>Start</th>
+                          <th>End</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody id="scheduleTableBody"></tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="surface alerts-surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Exception alerts</p>
+                      <h4>What changed and why</h4>
+                    </div>
+                  </div>
+                  <div class="alert-list" id="alertList"></div>
+                </article>
+
+                <article class="surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Resource view</p>
+                      <h4>Cells, labor, and tooling</h4>
+                    </div>
+                  </div>
+                  <div class="resource-list" id="resourceList"></div>
+                </article>
+
+                <article class="surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Planner narrative</p>
+                      <h4>Decision explanation</h4>
+                    </div>
+                  </div>
+                  <p class="narrative" id="narrative"></p>
+                </article>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

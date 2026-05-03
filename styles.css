@@ -139,6 +139,23 @@ h1 {
   font-size: 0.92rem;
 }
 
+.topbar-copy a {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.topbar-copy a:hover {
+  transform: translateY(-1px);
+  border-color: rgba(124, 240, 200, 0.46);
+  background: rgba(124, 240, 200, 0.08);
+  color: var(--text);
+}
+
 .hero-grid {
   grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.8fr);
   align-items: center;
@@ -554,6 +571,68 @@ td.status-risk {
   padding: 24px 0 10px;
 }
 
+.feature-directory {
+  padding: 20px 0 32px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.feature-card {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+  border-radius: 28px;
+  padding: 24px;
+}
+
+.feature-card h4 {
+  margin-top: 10px;
+  font-size: 1.5rem;
+  max-width: 18ch;
+}
+
+.feature-card p {
+  margin-top: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.feature-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.feature-list span {
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.feature-actions {
+  display: flex;
+  margin-top: 20px;
+}
+
+.subpage-hero {
+  padding: 10px 0 24px;
+}
+
+.subpage-intro {
+  max-width: 780px;
+}
+
+.page-surface {
+  padding-top: 18px;
+}
+
 .process-builder {
   padding: 36px 0;
 }
@@ -835,6 +914,7 @@ td.status-risk {
 	  .topbar,
 	  .dashboard-grid,
 	  .builder-kpis,
+	  .feature-grid,
 	  .thesis-grid,
 	  .roadmap-grid {
     grid-template-columns: 1fr;

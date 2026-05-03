@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dry Dock V1 - Interactive Line Builder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="subpage-hero">
+        <nav class="topbar">
+          <div class="brand-lockup">
+            <div class="brand-mark">DD</div>
+            <div>
+              <p class="eyebrow">Industrial Decision Intelligence</p>
+              <h1>Interactive Line Builder</h1>
+            </div>
+          </div>
+          <div class="topbar-copy nav-links">
+            <a href="./index.html">Home</a>
+            <a href="./planner.html">Planning Console</a>
+          </div>
+        </nav>
+
+        <section class="subpage-intro">
+          <p class="section-kicker">Process modeling</p>
+          <h2>Build the line, test the constraints, and see what it takes to hit the goal.</h2>
+          <p class="hero-text">
+            This workspace is tuned for process design and improvement. Add steps,
+            compare sourcing approaches, measure output, and pressure-test the plan
+            before it reaches the scheduling layer.
+          </p>
+          <div class="hero-actions">
+            <a href="./planner.html" class="button button-secondary">Go to planning console</a>
+          </div>
+        </section>
+      </header>
+
+      <main>
+        <section class="process-builder page-surface" id="process-builder">
+          <div class="section-heading builder-heading">
+            <div>
+              <p class="section-kicker">Interactive line builder</p>
+              <h3>Model process steps, sourcing, capacity, and production goals.</h3>
+            </div>
+            <button class="button button-primary" id="analyzeLineButton" type="button">Analyze Line</button>
+          </div>
+
+          <div class="builder-layout">
+            <aside class="control-panel builder-controls">
+              <div class="control-card">
+                <p class="control-title">Process step</p>
+                <form class="builder-form" id="processForm">
+                  <label>
+                    <span>Process name</span>
+                    <input id="processName" name="name" type="text" placeholder="Composite layup" required />
+                  </label>
+                  <div class="form-grid">
+                    <label>
+                      <span>Cycle time / unit (min)</span>
+                      <input id="cycleTime" name="cycleTime" type="number" min="0.1" step="0.1" required />
+                    </label>
+                    <label>
+                      <span>Machines / operators</span>
+                      <input id="machines" name="machines" type="number" min="1" step="1" required />
+                    </label>
+                  </div>
+                  <div class="form-grid">
+                    <label>
+                      <span>Shift hours / day</span>
+                      <input id="shiftHours" name="shiftHours" type="number" min="1" max="24" step="0.5" required />
+                    </label>
+                    <label>
+                      <span>Scrap / defect rate (%)</span>
+                      <input id="scrapRate" name="scrapRate" type="number" min="0" max="100" step="0.1" required />
+                    </label>
+                  </div>
+                  <label>
+                    <span>Materials source</span>
+                    <select id="materialSource" name="materialSource">
+                      <option value="purchased">Purchased</option>
+                      <option value="in-house">Produced in-house</option>
+                    </select>
+                  </label>
+                  <div class="button-row">
+                    <button class="button button-secondary full-button" type="submit">Add Process Step</button>
+                    <button class="button button-ghost full-button" id="clearLineButton" type="button">Clear Line</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="control-card">
+                <p class="control-title">Components & sourcing</p>
+                <form class="builder-form" id="componentForm">
+                  <label>
+                    <span>Component / part name</span>
+                    <input id="componentName" name="name" type="text" placeholder="Carbon pre-preg roll" required />
+                  </label>
+                  <div class="form-grid">
+                    <label>
+                      <span>Source</span>
+                      <select id="componentSource" name="source">
+                        <option value="purchase">Purchase</option>
+                        <option value="produce">Produce</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Cost / unit</span>
+                      <input id="componentCost" name="cost" type="number" min="0" step="0.01" required />
+                    </label>
+                  </div>
+                  <label>
+                    <span>Lead time or cycle time</span>
+                    <input id="componentLeadTime" name="leadTime" type="number" min="0" step="0.1" required />
+                  </label>
+                  <div class="button-row">
+                    <button class="button button-secondary full-button" type="submit">Add Component</button>
+                    <button class="button button-ghost full-button" id="clearComponentsButton" type="button">Clear Components</button>
+                  </div>
+                </form>
+                <div class="component-list" id="componentList"></div>
+              </div>
+
+              <div class="control-card">
+                <p class="control-title">Production goal</p>
+                <form class="builder-form" id="goalForm">
+                  <label>
+                    <span>Target output rate (units/hr)</span>
+                    <input id="targetRate" name="targetRate" type="number" min="0" step="0.1" placeholder="18" />
+                  </label>
+                  <div class="form-grid">
+                    <label>
+                      <span>Total quantity</span>
+                      <input id="targetQuantity" name="targetQuantity" type="number" min="0" step="1" placeholder="500" />
+                    </label>
+                    <label>
+                      <span>Deadline date</span>
+                      <input id="deadlineDate" name="deadlineDate" type="date" />
+                    </label>
+                  </div>
+                  <button class="button button-primary full-button" type="submit">Optimize Goal</button>
+                </form>
+                <p class="optimizer-note">
+                  Production deployment would call the Python Qiskit optimizer API; this static prototype simulates the response with local JS calculations.
+                </p>
+              </div>
+            </aside>
+
+            <div class="planner-main builder-main">
+              <section class="dashboard-grid builder-kpis">
+                <article class="metric-card">
+                  <span>OEE</span>
+                  <strong id="lineOee">0%</strong>
+                  <p>Availability x performance x quality</p>
+                </article>
+                <article class="metric-card">
+                  <span>Throughput</span>
+                  <strong id="lineThroughput">0/hr</strong>
+                  <p>Limited by the slowest configured step</p>
+                </article>
+                <article class="metric-card">
+                  <span>Downtime</span>
+                  <strong id="lineDowntime">0%</strong>
+                  <p>Derived from shift coverage vs. productive time</p>
+                </article>
+                <article class="metric-card">
+                  <span>Scrap rate</span>
+                  <strong id="lineScrap">0%</strong>
+                  <p>Average expected defect loss</p>
+                </article>
+                <article class="metric-card">
+                  <span>Std vs actual</span>
+                  <strong id="standardActual">0 / 0</strong>
+                  <p>Daily theoretical vs. quality-adjusted output</p>
+                </article>
+              </section>
+
+              <section class="content-grid builder-content">
+                <article class="surface schedule-surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Generated schedule</p>
+                      <h4>Live Gantt-style process timeline</h4>
+                    </div>
+                    <span class="surface-pill" id="lineStatus">Waiting for inputs</span>
+                  </div>
+                  <div class="timeline-shell" id="processTimeline"></div>
+                </article>
+
+                <article class="surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Step analysis</p>
+                      <h4 id="activeStepTitle">No process selected</h4>
+                    </div>
+                    <span class="bottleneck-badge hidden" id="activeBottleneckBadge">Bottleneck</span>
+                  </div>
+                  <div class="step-detail" id="stepDetail"></div>
+                </article>
+
+                <article class="surface recommendations-surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Suggested solutions</p>
+                      <h4>Bottleneck and make-vs-buy actions</h4>
+                    </div>
+                  </div>
+                  <div class="recommendation-list" id="recommendationList"></div>
+                </article>
+
+                <article class="surface goal-surface">
+                  <div class="surface-heading">
+                    <div>
+                      <p class="surface-kicker">Goal response</p>
+                      <h4>Quantum-inspired optimization suggestions</h4>
+                    </div>
+                  </div>
+                  <div class="goal-response" id="goalResponse"></div>
+                </article>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

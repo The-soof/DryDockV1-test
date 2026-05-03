@@ -1,4 +1,2 @@
-qiskit
-qiskit-optimization
-qiskit-algorithms
-qiskit-aer
+fastapi
+uvicorn

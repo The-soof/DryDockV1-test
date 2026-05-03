@@ -1122,7 +1122,7 @@ function initLivePlannerPage() {
   );
 }
 
-const processSteps = [
+let processSteps = [
   {
     id: "step-layup",
     name: "Composite Layup",
@@ -1845,6 +1845,52 @@ function initBuilderPage() {
     renderBuilder();
   });
 
+    const uploadCsvBtn = document.getElementById('uploadCsvBtn');
+    const csvFileInput = document.getElementById('csvFileInput');
+
+    if (uploadCsvBtn && csvFileInput) {
+        uploadCsvBtn.addEventListener('click', async () => {
+            const file = csvFileInput.files[0];
+        
+            if (!file) {
+                alert("Please select a CSV file first.");
+                return;
+            }
+
+            // 1. Package the file into a form payload
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // 2. Send it to FastAPI
+                uploadCsvBtn.innerText = "Uploading...";
+                const response = await fetch('/api/upload-csv', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Upload failed");
+
+                const data = await response.json();
+
+                // 3. Update the global array (assuming 'processSteps' is your global variable)
+                // This clears out any manual steps and replaces them with the CSV steps
+                processSteps = data.processSteps;
+
+                // 4. Trigger your existing UI refresh function to draw the Gantt chart!
+                renderBuilder(); // (Make sure this matches the exact name of your refresh function)
+            
+                // Clean up
+                uploadCsvBtn.innerText = "Upload & Parse";
+                csvFileInput.value = ""; 
+
+            } catch (error) {
+                console.error("Error parsing CSV:", error);
+                alert("Failed to parse CSV. Check console for details.");
+                uploadCsvBtn.innerText = "Upload & Parse";
+            }
+        });
+    }
   stepDetail.addEventListener("click", (event) => {
     const removeStepButton = event.target.closest("[data-remove-step]");
     const removeComponentButton = event.target.closest("[data-remove-component]");

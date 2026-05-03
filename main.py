@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from typing import Any, Dict
 import random
 from optimizer import build_response
+import csv
+import io
 
 app = FastAPI()
 
@@ -27,6 +29,34 @@ mock_mes_db = {
         {"id": "mes-step-trim", "name": "Trimming & inspection", "station": "Inspection Q2", "cycleTimeMin": 8.0, "idealCycleTimeMin": 7.6, "machinesActive": 3, "uptimePercent": 88.0, "scrapRatePercent": 5.0, "queueMinutes": 5, "state": "Watch"}
     ]
 }
+
+@app.post("/api/upload-csv")
+async def upload_csv(file: UploadFile = File(...)):
+    # 1. Read the file out of the browser's request
+    content = await file.read()
+    decoded_content = content.decode('utf-8')
+    # 2. Parse the CSV text
+    reader = csv.DictReader(io.StringIO(decoded_content))
+    process_steps = []
+    # 3. Loop through each row and format it for the Line Builder
+    # We are using .get() with default fallback values just in case a cell is blank
+    for i, row in enumerate(reader):
+        process_steps.append({
+            "id": f"csv-step-{i}",
+            "name": row.get("Name", f"Step {i+1}"),
+            "station": row.get("Station", "Unknown Cell"),
+            "cycleTimeMin": float(row.get("CycleTime", 0)),
+            "scrapRatePercent": float(row.get("ScrapRate", 0)),
+            "machinesActive": int(row.get("Machines", 1)),
+            # Filling in default mock data for the fields the CSV might not have
+            "idealCycleTimeMin": float(row.get("CycleTime", 0)) * 0.95, 
+            "uptimePercent": 100.0,
+            "queueMinutes": 0,
+            "state": "Running"
+        })
+
+    # 4. Send the formatted list back to the browser
+    return {"processSteps": process_steps}
 
 # 1. The original Optimizer API (POST)
 @app.post("/api/optimize")

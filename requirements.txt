@@ -1,4 +1,1 @@
-qiskit
-qiskit-optimization
-qiskit-algorithms
-qiskit-aer
+# Phase 1 is dependency-free.

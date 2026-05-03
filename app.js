@@ -74,7 +74,7 @@ const scenarios = [
       riskDelta: "Assembly labor becomes the next likely constraint"
     },
     narrative:
-      "The decision engine inserted the rush order by moving one lower-priority panel into the evening shift, preserving all P1 due dates while increasing assembly load. Quantum-assisted search was used on the highest-conflict routing choices because standard heuristics produced two tooling deadlocks.",
+      "The decision engine inserted the rush order by moving one lower-priority panel into the evening shift, preserving all P1 due dates while increasing assembly load. The deterministic rules layer focused on the highest-conflict routing choices because standard heuristics produced two tooling deadlocks.",
     alerts: [
       {
         level: "critical",
@@ -442,6 +442,664 @@ function initPlannerPage() {
 
   renderInputs();
   renderScenario("baseline");
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
+function formatAge(timestamp) {
+  const ageMs = Math.max(0, Date.now() - new Date(timestamp).getTime());
+  if (ageMs < 60000) {
+    return `${Math.max(1, Math.round(ageMs / 1000))} sec`;
+  }
+
+  return `${Math.round(ageMs / 60000)} min`;
+}
+
+class ManufacturingAPI {
+  static sequence = 0;
+  static lastRawSnapshot = null;
+
+  static baseModel = {
+    lineName: "Dry Dock Composite Line",
+    shiftName: "Shift 1",
+    refreshIntervalMs: 5000,
+    mes: {
+      lineStatus: "Running",
+      processSteps: [
+        {
+          id: "mes-step-layup",
+          name: "Composite layup",
+          station: "Cell C2",
+          cycleTimeMin: 12.5,
+          idealCycleTimeMin: 11.8,
+          machinesActive: 2,
+          uptimePercent: 94,
+          scrapRatePercent: 2.5,
+          queueMinutes: 8,
+          state: "Running"
+        },
+        {
+          id: "mes-step-cure",
+          name: "Curing oven",
+          station: "Oven A1",
+          cycleTimeMin: 45,
+          idealCycleTimeMin: 41,
+          machinesActive: 1,
+          uptimePercent: 91,
+          scrapRatePercent: 0.5,
+          queueMinutes: 18,
+          state: "Watch"
+        },
+        {
+          id: "mes-step-trim",
+          name: "Trimming & inspection",
+          station: "Inspection Q2",
+          cycleTimeMin: 8,
+          idealCycleTimeMin: 7.6,
+          machinesActive: 3,
+          uptimePercent: 88,
+          scrapRatePercent: 5,
+          queueMinutes: 5,
+          state: "Watch"
+        }
+      ]
+    },
+    erp: {
+      productionGoal: {
+        targetRatePerHour: 18,
+        totalQuantity: 500,
+        deadlineDate: "2026-05-30"
+      },
+      components: [
+        {
+          id: "comp_001",
+          name: "Carbon pre-preg roll",
+          sourceType: "purchase",
+          onHand: 14,
+          reserved: 6,
+          costPerUnit: 250,
+          leadTimeDays: 5,
+          risk: "warning"
+        },
+        {
+          id: "comp_002",
+          name: "Epoxy resin",
+          sourceType: "purchase",
+          onHand: 22,
+          reserved: 4,
+          costPerUnit: 45.5,
+          leadTimeDays: 2,
+          risk: "ok"
+        }
+      ]
+    }
+  };
+
+  static async getNormalizedSnapshot() {
+    const sequence = this.sequence + 1;
+    this.sequence = sequence;
+    const rawSnapshot = this.buildRawSnapshot(sequence);
+    this.lastRawSnapshot = rawSnapshot;
+    await delay(180);
+    return this.normalizeSnapshot(rawSnapshot, sequence);
+  }
+
+  static async getMesData() {
+    if (!this.lastRawSnapshot) {
+      await this.getNormalizedSnapshot();
+    }
+
+    return cloneValue(this.lastRawSnapshot.mes);
+  }
+
+  static async getErpData() {
+    if (!this.lastRawSnapshot) {
+      await this.getNormalizedSnapshot();
+    }
+
+    return cloneValue(this.lastRawSnapshot.erp);
+  }
+
+  static subscribe(onUpdate, onError, options = {}) {
+    const intervalMs = options.intervalMs || this.baseModel.refreshIntervalMs;
+    let cancelled = false;
+    let timerId = null;
+
+    const poll = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      try {
+        const snapshot = await this.getNormalizedSnapshot();
+        if (!cancelled) {
+          onUpdate(snapshot);
+        }
+      } catch (error) {
+        if (onError) {
+          onError(error);
+        }
+      } finally {
+        if (!cancelled) {
+          timerId = window.setTimeout(poll, intervalMs);
+        }
+      }
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timerId) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }
+
+  static buildRawSnapshot(sequence) {
+    const mes = cloneValue(this.baseModel.mes);
+    const erp = cloneValue(this.baseModel.erp);
+
+    mes.lineStatus = sequence % 5 === 0 ? "Watch" : "Running";
+    mes.processSteps = mes.processSteps.map((step, index) => {
+      const cycleShift = 1 + ((Math.sin(sequence / 2 + index) * 0.04) + ((sequence + index) % 3) * 0.01);
+      const scrapShift = ((sequence + index) % 4 === 0 ? 0.6 : -0.15) + Math.cos(sequence + index) * 0.2;
+      const uptimeShift = ((sequence + index) % 5 === 0 ? -2.5 : 0.8) + Math.sin(sequence / 3 + index) * 0.4;
+      const queueShift = ((sequence + index) % 4) * 1.2;
+
+      return {
+        ...step,
+        cycleTimeMin: Number((step.cycleTimeMin * cycleShift).toFixed(2)),
+        scrapRatePercent: Number(Math.max(0, step.scrapRatePercent + scrapShift).toFixed(2)),
+        uptimePercent: Number(Math.max(70, Math.min(99, step.uptimePercent + uptimeShift)).toFixed(2)),
+        queueMinutes: Number(Math.max(0, step.queueMinutes + queueShift).toFixed(1)),
+        state: index === 1 && sequence % 4 === 0 ? "Watch" : step.state
+      };
+    });
+
+    erp.productionGoal = {
+      ...erp.productionGoal,
+      targetRatePerHour: Number((erp.productionGoal.targetRatePerHour + ((sequence % 3) - 1) * 0.5).toFixed(1))
+    };
+
+    erp.components = erp.components.map((component, index) => {
+      const leadShift = (sequence + index) % 4 === 0 ? 1 : 0;
+      const onHandShift = (sequence + index) % 5 === 0 ? -2 : 0;
+
+      return {
+        ...component,
+        leadTimeDays: component.leadTimeDays + leadShift,
+        onHand: Math.max(0, component.onHand + onHandShift),
+        reserved: component.reserved + (sequence % 2 === 0 ? 1 : 0)
+      };
+    });
+
+    return {
+      sequence,
+      updatedAt: new Date().toISOString(),
+      source: "mock-polling",
+      mes,
+      erp
+    };
+  }
+
+  static normalizeSnapshot(rawSnapshot, sequence) {
+    const targetRate = rawSnapshot.erp.productionGoal.targetRatePerHour;
+    const steps = rawSnapshot.mes.processSteps.map((step) => {
+      const grossThroughputPerHour = (60 / Math.max(step.cycleTimeMin, 0.1)) * Math.max(step.machinesActive, 1);
+      const quality = clamp(1 - step.scrapRatePercent / 100, 0, 1);
+      const performance = clamp(step.idealCycleTimeMin / Math.max(step.cycleTimeMin, 0.1), 0, 1);
+      const availability = clamp(step.uptimePercent / 100, 0, 1);
+      const netThroughputPerHour = grossThroughputPerHour * quality;
+      const oee = availability * performance * quality * 100;
+      const targetShare = targetRate / Math.max(rawSnapshot.mes.processSteps.length, 1);
+      const pressure = targetShare > 0 ? netThroughputPerHour / targetShare : 1;
+      let state = "Running";
+
+      if (pressure < 0.88 || step.queueMinutes > 18) {
+        state = "Risk";
+      } else if (pressure < 1 || step.scrapRatePercent > 3.5) {
+        state = "Watch";
+      }
+
+      return {
+        ...step,
+        grossThroughputPerHour: Number(grossThroughputPerHour.toFixed(2)),
+        netThroughputPerHour: Number(netThroughputPerHour.toFixed(2)),
+        oee: Number(oee.toFixed(2)),
+        pressure: Number(pressure.toFixed(2)),
+        state
+      };
+    });
+
+    const bottleneckStep = steps.reduce((slowest, current) => {
+      if (!slowest) {
+        return current;
+      }
+
+      return current.netThroughputPerHour < slowest.netThroughputPerHour ? current : slowest;
+    }, null);
+
+    const highestScrapStep = steps.reduce((highest, current) => {
+      if (!highest) {
+        return current;
+      }
+
+      return current.scrapRatePercent > highest.scrapRatePercent ? current : highest;
+    }, null);
+
+    const lineThroughputPerHour = bottleneckStep ? bottleneckStep.netThroughputPerHour : 0;
+    const lineOee = steps.length
+      ? steps.reduce((sum, step) => sum + step.oee, 0) / steps.length
+      : 0;
+    const lineYield = steps.reduce((yieldTotal, step) => {
+      return yieldTotal * (1 - step.scrapRatePercent / 100);
+    }, 1);
+    const lineScrapRate = (1 - lineYield) * 100;
+    const targetAttainment = targetRate > 0 ? (lineThroughputPerHour / targetRate) * 100 : 0;
+    const healthScore = clamp(
+      Math.round(lineOee * 0.45 + targetAttainment * 0.35 + (100 - lineScrapRate) * 0.2),
+      0,
+      100
+    );
+
+    const lineStatus = healthScore >= 82 ? "Running" : healthScore >= 68 ? "Watch" : "At risk";
+
+    const recommendations = buildLineRecommendations({
+      steps,
+      bottleneckStep,
+      highestScrapStep,
+      lineThroughputPerHour,
+      lineOee,
+      lineScrapRate,
+      targetAttainment,
+      targetRate,
+      components: rawSnapshot.erp.components
+    });
+
+    return {
+      sequence,
+      updatedAt: rawSnapshot.updatedAt,
+      source: rawSnapshot.source,
+      line: {
+        name: this.baseModel.lineName,
+        shift: this.baseModel.shiftName,
+        status: lineStatus,
+        healthScore,
+        healthLabel: lineStatus,
+        throughputPerHour: Number(lineThroughputPerHour.toFixed(2)),
+        oee: Number(lineOee.toFixed(2)),
+        scrapRate: Number(lineScrapRate.toFixed(2)),
+        targetAttainment: Number(targetAttainment.toFixed(2)),
+        bottleneckStep,
+        highestScrapStep
+      },
+      mes: rawSnapshot.mes,
+      erp: {
+        ...rawSnapshot.erp,
+        productionGoal: {
+          ...rawSnapshot.erp.productionGoal,
+          deadlineDateLabel: new Date(rawSnapshot.erp.productionGoal.deadlineDate).toLocaleDateString()
+        }
+      },
+      steps,
+      recommendations,
+      focusViews: [
+        {
+          id: "overview",
+          title: "Live snapshot",
+          summary: "Merged MES and ERP feed with line health and target pressure."
+        },
+        {
+          id: "steps",
+          title: "Step analysis",
+          summary: "Per-step cycle time, throughput, scrap, and OEE."
+        },
+        {
+          id: "constraints",
+          title: "ERP constraints",
+          summary: "Materials, lead times, and production-goal pressure."
+        }
+      ],
+      feedCards: [
+        {
+          title: `${this.baseModel.lineName}`,
+          detail: `${lineStatus} | ${formatTimestamp(rawSnapshot.updatedAt)}`,
+          meta: `Target ${Number(targetRate).toFixed(1)}/hr`
+        },
+        {
+          title: "MES feed",
+          detail: `${steps.length} live steps polled from the mock adapter.`,
+          meta: `${formatAge(rawSnapshot.updatedAt)} old`
+        },
+        {
+          title: "ERP pressure",
+          detail: bottleneckStep
+            ? `Bottleneck: ${bottleneckStep.name} at ${formatNumber(bottleneckStep.netThroughputPerHour)} units/hr.`
+            : "No bottleneck detected.",
+          meta: `${formatNumber(targetAttainment)}% target attainment`
+        }
+      ],
+      constraints: rawSnapshot.erp.components.map((component) => {
+        const isRisky = component.leadTimeDays > 3 || component.onHand <= component.reserved;
+        return {
+          id: component.id,
+          title: component.name,
+          detail: `${component.sourceType === "purchase" ? "Purchase" : "Produce"} | ${component.onHand} on hand | ${component.reserved} reserved`,
+          meta: `${component.leadTimeDays} day lead | ${isRisky ? "watch" : "stable"}`,
+          severity: component.risk
+        };
+      })
+    };
+  }
+}
+
+function buildLineRecommendations(context) {
+  const {
+    steps,
+    bottleneckStep,
+    highestScrapStep,
+    lineThroughputPerHour,
+    lineOee,
+    lineScrapRate,
+    targetAttainment,
+    targetRate,
+    components
+  } = context;
+
+  const recommendations = [];
+
+  if (bottleneckStep) {
+    const throughputGap = Math.max(0, targetRate - lineThroughputPerHour);
+    recommendations.push({
+      title: `Protect ${bottleneckStep.name}`,
+      body: `${bottleneckStep.name} is the bottleneck at ${formatNumber(bottleneckStep.netThroughputPerHour)} units/hr. Resequence work ahead of it and limit WIP feeding that step to recover ${formatNumber(throughputGap)} units/hr of target gap.`,
+      reason: `Bottleneck pressure is ${formatNumber(bottleneckStep.pressure)}x the local target share.`,
+      severity: bottleneckStep.state === "Risk" ? "critical" : "warning"
+    });
+  }
+
+  if (highestScrapStep) {
+    recommendations.push({
+      title: `Reduce scrap at ${highestScrapStep.name}`,
+      body: `${highestScrapStep.name} is losing ${formatNumber(highestScrapStep.scrapRatePercent)}% of output. Prioritize first-article checks, incoming material verification, and setup review to lift overall line OEE from ${formatNumber(lineOee)}%.`,
+      reason: `This is the highest scrap step in the live feed.`,
+      severity: highestScrapStep.scrapRatePercent >= 4 ? "warning" : "info"
+    });
+  }
+
+  const lowInventory = components.find((component) => component.onHand <= component.reserved || component.leadTimeDays > 3);
+  if (lowInventory) {
+    recommendations.push({
+      title: `Secure ${lowInventory.name}`,
+      body: `${lowInventory.name} has ${lowInventory.onHand} on hand, ${lowInventory.reserved} reserved, and a ${lowInventory.leadTimeDays}-day lead time. Release replenishment earlier or dual-source this component before it constrains the schedule.`,
+      reason: "ERP inventory and lead-time pressure can stall the line before MES capacity does.",
+      severity: "warning"
+    });
+  }
+
+  recommendations.push({
+    title: "Keep the line balanced",
+    body: `Current target attainment is ${formatNumber(targetAttainment)}%. Maintain the current sequence, protect the curing oven queue, and use the low-scrap steps to absorb any short-term surge.`,
+    reason: "The deterministic optimizer favors the highest-impact bottleneck and quality fixes first.",
+    severity: targetAttainment >= 100 ? "info" : "warning"
+  });
+
+  return recommendations.slice(0, 4);
+}
+
+const liveFocusChips = [
+  "Line health",
+  "MES steps",
+  "ERP targets",
+  "Inventory risk",
+  "Quality drift",
+  "Refresh mode"
+];
+
+const liveFocusDescriptions = {
+  "Line health": "Shows the merged line status, target attainment, and overall OEE coming from the MES and ERP snapshot.",
+  "MES steps": "Highlights live process-step throughput, scrap, queue pressure, and bottleneck detection.",
+  "ERP targets": "Surfaces the target rate, deadline, and production planning pressure from the ERP layer.",
+  "Inventory risk": "Calls out component shortages, lead-time gaps, and other schedule constraints.",
+  "Quality drift": "Focuses the highest scrap step and its downstream effect on line OEE.",
+  "Refresh mode": "Explains the polling feed so the UI is easy to swap to WebSockets or SSE later."
+};
+
+const selectedLiveFocusChips = new Set(["Line health", "MES steps", "ERP targets"]);
+const livePlannerState = {
+  activeViewId: "overview",
+  snapshot: null,
+  unsubscribe: null
+};
+
+function renderLiveFocusChips() {
+  if (!hasPlannerPage) {
+    return;
+  }
+
+  inputChipsEl.innerHTML = liveFocusChips
+    .map(
+      (chip) => `
+        <button class="chip ${selectedLiveFocusChips.has(chip) ? "active" : ""}" data-live-focus-chip="${chip}" type="button">
+          ${chip}
+        </button>
+      `
+    )
+    .join("");
+
+  const selected = [...selectedLiveFocusChips];
+  inputDetail.textContent = selected.length
+    ? selected.map((chip) => liveFocusDescriptions[chip]).join(" ")
+    : "Choose one or more live focus areas to tailor the summary."
+}
+
+function renderLiveViews(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  scenarioList.innerHTML = snapshot.focusViews
+    .map(
+      (view) => `
+        <button class="scenario-button ${view.id === livePlannerState.activeViewId ? "active" : ""}" data-live-view-id="${view.id}">
+          <strong>${view.title}</strong>
+          <p>${view.summary}</p>
+        </button>
+      `
+    )
+    .join("");
+}
+
+function renderLiveMetrics(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  metricEls.onTime.textContent = `${formatNumber(snapshot.line.oee)}%`;
+  metricEls.onTimeDelta.textContent = `Target ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)}/hr`;
+  metricEls.utilization.textContent = `${formatNumber(snapshot.line.throughputPerHour)}/hr`;
+  metricEls.utilizationDelta.textContent = `Attainment ${formatNumber(snapshot.line.targetAttainment)}%`;
+  metricEls.reschedule.textContent = `${formatNumber(snapshot.line.scrapRate)}%`;
+  metricEls.rescheduleDelta.textContent = snapshot.line.highestScrapStep
+    ? `Highest scrap: ${snapshot.line.highestScrapStep.name}`
+    : "No scrap leader";
+  metricEls.risk.textContent = snapshot.line.healthLabel;
+  metricEls.riskDelta.textContent = snapshot.line.bottleneckStep
+    ? `Bottleneck: ${snapshot.line.bottleneckStep.name}`
+    : "All steps balanced";
+}
+
+function renderLiveSteps(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  scheduleTableBody.innerHTML = snapshot.steps
+    .map(
+      (step) => `
+        <tr>
+          <td>${step.name}</td>
+          <td>${step.station}</td>
+          <td>${formatNumber(step.cycleTimeMin)} min</td>
+          <td>${formatNumber(step.netThroughputPerHour)} / hr</td>
+          <td>${formatNumber(step.scrapRatePercent)}%</td>
+          <td>${formatNumber(step.oee)}%</td>
+          <td class="${statusClass(step.state === "Running" ? "On track" : step.state === "Watch" ? "Watch" : "Risk")}">${step.state}</td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function renderLiveRecommendations(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  alertList.innerHTML = snapshot.recommendations
+    .map(
+      (recommendation) => `
+        <article class="alert-card" data-level="${recommendation.severity}">
+          <strong>${recommendation.title}</strong>
+          <p>${recommendation.body}</p>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderLiveResources(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  resourceList.innerHTML = snapshot.constraints
+    .map(
+      (constraint) => `
+        <article class="resource-card">
+          <strong>${constraint.title}</strong>
+          <p>${constraint.detail}</p>
+          <div class="resource-meta">
+            <span>${constraint.meta}</span>
+            <span>${constraint.severity === "ok" ? "stable" : constraint.severity}</span>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderLiveNarrative(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  const bottleneck = snapshot.line.bottleneckStep ? snapshot.line.bottleneckStep.name : "no single step";
+  const ageText = formatAge(snapshot.updatedAt);
+  const activeFilterText = [...selectedLiveFocusChips].length
+    ? [...selectedLiveFocusChips].join(", ").toLowerCase()
+    : "none";
+
+  scenarioName.textContent = `${snapshot.line.name} | ${snapshot.line.shift}`;
+  solverMode.textContent = `${snapshot.source === "mock-polling" ? "Mock polling feed" : snapshot.source} | refresh every ${Math.round(ManufacturingAPI.baseModel.refreshIntervalMs / 1000)}s`;
+
+  if (livePlannerState.activeViewId === "steps") {
+    narrative.textContent = `The MES feed shows ${snapshot.steps.length} live steps. ${snapshot.line.bottleneckStep ? `${snapshot.line.bottleneckStep.name} is the bottleneck at ${formatNumber(snapshot.line.bottleneckStep.netThroughputPerHour)} units/hr.` : "The line is currently balanced."} Target attainment is ${formatNumber(snapshot.line.targetAttainment)}% and the current snapshot is ${ageText} old.`;
+    return;
+  }
+
+  if (livePlannerState.activeViewId === "constraints") {
+    const constraintSummary = snapshot.constraints.map((constraint) => constraint.title).join(", ");
+    narrative.textContent = `The ERP layer is constraining the line through ${constraintSummary}. Keep an eye on ${bottleneck} while the planner preserves the ${snapshot.erp.productionGoal.deadlineDateLabel} deadline and the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)}/hr target.`;
+    return;
+  }
+
+  narrative.textContent = `Dry Dock is ${snapshot.line.healthLabel.toLowerCase()} with ${formatNumber(snapshot.line.oee)}% OEE, ${formatNumber(snapshot.line.throughputPerHour)}/hr throughput, and ${formatNumber(snapshot.line.scrapRate)}% scrap. Focus filters are set to ${activeFilterText}. The last mock MES/ERP refresh landed ${ageText} ago.`;
+}
+
+function renderLiveDashboard(snapshot) {
+  if (!hasPlannerPage || !snapshot) {
+    return;
+  }
+
+  livePlannerState.snapshot = snapshot;
+  renderLiveFocusChips();
+  renderLiveViews(snapshot);
+  renderLiveMetrics(snapshot);
+  renderLiveSteps(snapshot);
+  renderLiveRecommendations(snapshot);
+  renderLiveResources(snapshot);
+  renderLiveNarrative(snapshot);
+}
+
+function initLivePlannerPage() {
+  if (!hasPlannerPage) {
+    return;
+  }
+
+  scenarioList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-live-view-id]");
+    if (!button) {
+      return;
+    }
+
+    livePlannerState.activeViewId = button.dataset.liveViewId;
+    if (livePlannerState.snapshot) {
+      renderLiveDashboard(livePlannerState.snapshot);
+    }
+  });
+
+  inputChipsEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-live-focus-chip]");
+    if (!button) {
+      return;
+    }
+
+    const chip = button.dataset.liveFocusChip;
+    if (selectedLiveFocusChips.has(chip)) {
+      selectedLiveFocusChips.delete(chip);
+    } else {
+      selectedLiveFocusChips.add(chip);
+    }
+
+    renderLiveFocusChips();
+    if (livePlannerState.snapshot) {
+      renderLiveNarrative(livePlannerState.snapshot);
+    }
+  });
+
+  if (livePlannerState.unsubscribe) {
+    livePlannerState.unsubscribe();
+  }
+
+  livePlannerState.unsubscribe = ManufacturingAPI.subscribe(
+    (snapshot) => {
+      renderLiveDashboard(snapshot);
+    },
+    (error) => {
+      console.error("Failed to refresh live manufacturing snapshot:", error);
+      solverMode.textContent = "Mock polling feed | refresh failed";
+    },
+    { intervalMs: ManufacturingAPI.baseModel.refreshIntervalMs }
+  );
 }
 
 const processSteps = [
@@ -1204,5 +1862,5 @@ function initBuilderPage() {
   updateGoalResponse();
 }
 
-initPlannerPage();
+initLivePlannerPage();
 initBuilderPage();

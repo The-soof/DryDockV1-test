@@ -1,17 +1,14 @@
 # Dry Dock V1
 
-Dry Dock is a static prototype for a quantum-assisted manufacturing optimization company focused on production scheduling for low-volume, high-mix, high-constraint manufacturing.
+Dry Dock is a static prototype for a manufacturing operations dashboard focused on live MES/ERP line visibility and deterministic schedule optimization for low-volume, high-mix, high-constraint manufacturing.
 
 ## What this prototype includes
 
 - A startup/product landing page that positions Dry Dock as an industrial decision intelligence platform
-- A planning console with sample factory inputs and solver stack
-- A scenario simulator for:
-  - baseline production planning
-  - rush order insertion
-  - machine outage recovery
-  - material delay resequencing
-- KPI cards, exception alerts, resource views, and planner narrative output
+- A live operations dashboard that merges MES and ERP data through a polling adapter
+- A deterministic optimizer that ranks bottlenecks, highlights inventory risk, and explains the next best action
+- A line builder for process modeling, sourcing, and goal analysis
+- KPI cards, recommendations, ERP constraints, and live step analysis output
 
 ## Run locally
 
@@ -34,6 +31,6 @@ This V1 is intentionally dependency-free so it can run in a clean environment wi
 ## Suggested next steps
 
 - Add CSV upload and parsing for jobs, machines, and labor constraints
-- Add a real optimization service behind the scenario engine
+- Add a backend MES/ERP bridge with WebSocket or SSE delivery
 - Introduce authentication and pilot-customer workspaces
-- Add ERP/MES connector surfaces and persistent scenario history
+- Add persistent live feed history and audit logs

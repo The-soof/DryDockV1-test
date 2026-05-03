@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dry Dock V1 - Planning Console</title>
+    <title>Dry Dock V1 - Live Operations Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -31,11 +31,11 @@
 
         <section class="subpage-intro">
           <p class="section-kicker">Scenario simulator</p>
-          <h2>Run disruption scenarios and inspect how the schedule flexes under pressure.</h2>
+          <h2>Watch live MES and ERP data flow into the line view, then review optimizer advice in real time.</h2>
           <p class="hero-text">
-            This workspace is focused on what planners need in the moment: compare shock
-            scenarios, inspect downstream impact, and understand the reasoning behind the
-            recommended schedule.
+            This workspace merges live line status, per-step health, and production planning
+            targets so planners can see bottlenecks, schedule pressure, and recovery actions
+            without waiting for a manual report.
           </p>
           <div class="hero-actions">
             <a href="./line-builder.html" class="button button-secondary">Go to line builder</a>
@@ -47,31 +47,31 @@
         <section class="planner page-surface" id="planner">
           <div class="section-heading planner-heading">
             <div>
-              <p class="section-kicker">Planning console</p>
-              <h3>Finite-capacity scheduling for high-constraint manufacturing</h3>
+              <p class="section-kicker">Live operations dashboard</p>
+              <h3>MES and ERP snapshots with deterministic optimizer guidance</h3>
             </div>
             <div class="planner-badge">
               <span class="live-dot"></span>
-              <span id="scenarioName">Baseline production plan</span>
+              <span id="scenarioName">Dry Dock Composite Line</span>
             </div>
           </div>
 
           <div class="planner-layout">
             <aside class="control-panel">
               <div class="control-card">
-                <p class="control-title">Scenario simulator</p>
+                <p class="control-title">Live feed</p>
                 <p class="control-copy">
-                  Toggle production shocks to see how Dry Dock replans jobs, shifts
-                  bottlenecks, and preserves priority orders.
+                  The feed is currently backed by a mock adapter and polling refresh, which
+                  keeps the app ready for a future backend MES/ERP bridge.
                 </p>
                 <div class="scenario-list" id="scenarioList"></div>
               </div>
 
               <div class="control-card">
-                <p class="control-title">Factory inputs</p>
+                <p class="control-title">Focus filters</p>
                 <div class="chip-list" id="inputChips"></div>
                 <p class="input-detail" id="inputDetail">
-                  Select an input to see how it affects the planning model.
+                  Select one or more live views to narrow the dashboard summary.
                 </p>
               </div>
 
@@ -79,8 +79,8 @@
                 <p class="control-title">Optimization stack</p>
                 <ul class="stack-list">
                   <li>Constraint normalization layer</li>
-                  <li>Priority-aware finite capacity scheduler</li>
-                  <li>Hybrid quantum search for conflict-heavy resource clusters</li>
+                  <li>MES and ERP snapshot merger</li>
+                  <li>Rules-based bottleneck and inventory advisor</li>
                   <li>Planner explanation and KPI comparison engine</li>
                 </ul>
               </div>
@@ -89,24 +89,24 @@
             <div class="planner-main">
               <section class="dashboard-grid">
                 <article class="metric-card">
-                  <span>On-time completion</span>
-                  <strong id="metricOnTime">92%</strong>
-                  <p id="metricOnTimeDelta">+4 pts vs manual baseline</p>
+                  <span>Line OEE</span>
+                  <strong id="metricOnTime">82%</strong>
+                  <p id="metricOnTimeDelta">Target 18.0/hr</p>
                 </article>
                 <article class="metric-card">
-                  <span>Machine utilization</span>
-                  <strong id="metricUtilization">78%</strong>
-                  <p id="metricUtilizationDelta">+9 pts on constrained cells</p>
+                  <span>Throughput</span>
+                  <strong id="metricUtilization">16/hr</strong>
+                  <p id="metricUtilizationDelta">Attainment 88%</p>
                 </article>
                 <article class="metric-card">
-                  <span>Reschedule time</span>
-                  <strong id="metricReschedule">12 min</strong>
-                  <p id="metricRescheduleDelta">41% faster than current workflow</p>
+                  <span>Scrap rate</span>
+                  <strong id="metricReschedule">2%</strong>
+                  <p id="metricRescheduleDelta">Highest scrap: Trimming &amp; inspection</p>
                 </article>
                 <article class="metric-card">
-                  <span>Bottleneck risk</span>
-                  <strong id="metricRisk">Moderate</strong>
-                  <p id="metricRiskDelta">Composite layup remains the pacing resource</p>
+                  <span>Line health</span>
+                  <strong id="metricRisk">Running</strong>
+                  <p id="metricRiskDelta">Bottleneck: Curing oven</p>
                 </article>
               </section>
 
@@ -114,21 +114,21 @@
                 <article class="surface schedule-surface">
                   <div class="surface-heading">
                     <div>
-                      <p class="surface-kicker">Recommended schedule</p>
-                      <h4>Shift-by-shift routing plan</h4>
+                      <p class="surface-kicker">Live step analysis</p>
+                      <h4>MES process steps and bottleneck pressure</h4>
                     </div>
-                    <span class="surface-pill" id="solverMode">Classical baseline + hybrid assist</span>
+                    <span class="surface-pill" id="solverMode">Mock MES/ERP feed | refresh every 5s</span>
                   </div>
                   <div class="table-shell">
                     <table>
                       <thead>
                         <tr>
-                          <th>Job</th>
-                          <th>Part / program</th>
-                          <th>Priority</th>
-                          <th>Assigned cell</th>
-                          <th>Start</th>
-                          <th>End</th>
+                          <th>Step</th>
+                          <th>Station</th>
+                          <th>Cycle time</th>
+                          <th>Throughput</th>
+                          <th>Scrap</th>
+                          <th>OEE</th>
                           <th>Status</th>
                         </tr>
                       </thead>
@@ -140,8 +140,8 @@
                 <article class="surface alerts-surface">
                   <div class="surface-heading">
                     <div>
-                      <p class="surface-kicker">Exception alerts</p>
-                      <h4>What changed and why</h4>
+                      <p class="surface-kicker">Optimizer recommendations</p>
+                      <h4>What to change next</h4>
                     </div>
                   </div>
                   <div class="alert-list" id="alertList"></div>
@@ -150,8 +150,8 @@
                 <article class="surface">
                   <div class="surface-heading">
                     <div>
-                      <p class="surface-kicker">Resource view</p>
-                      <h4>Cells, labor, and tooling</h4>
+                      <p class="surface-kicker">ERP constraints</p>
+                      <h4>Inventory, lead times, and release pressure</h4>
                     </div>
                   </div>
                   <div class="resource-list" id="resourceList"></div>
@@ -160,8 +160,8 @@
                 <article class="surface">
                   <div class="surface-heading">
                     <div>
-                      <p class="surface-kicker">Planner narrative</p>
-                      <h4>Decision explanation</h4>
+                      <p class="surface-kicker">Decision explanation</p>
+                      <h4>Live line summary</h4>
                     </div>
                   </div>
                   <p class="narrative" id="narrative"></p>

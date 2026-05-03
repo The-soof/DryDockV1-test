@@ -555,10 +555,30 @@ class ManufacturingAPI {
   static async getNormalizedSnapshot() {
     const sequence = this.sequence + 1;
     this.sequence = sequence;
-    const rawSnapshot = this.buildRawSnapshot(sequence);
-    this.lastRawSnapshot = rawSnapshot;
-    await delay(180);
-    return this.normalizeSnapshot(rawSnapshot, sequence);
+    
+    try {
+      // 1. Fetch the raw data from your Python backend
+      const response = await fetch('/api/live-feed');
+      const rawData = await response.json();
+      
+      // 2. Format it into the snapshot wrapper your UI expects
+      const rawSnapshot = {
+        sequence: sequence,
+        updatedAt: new Date().toISOString(),
+        source: "fastapi-backend", // Changed to show it's coming from Python!
+        mes: rawData.mes,
+        erp: rawData.erp
+      };
+      
+      this.lastRawSnapshot = rawSnapshot;
+      
+      // 3. Run your UI normalizer
+      return this.normalizeSnapshot(rawSnapshot, sequence);
+
+    } catch (error) {
+      console.error("Failed to fetch live feed from backend:", error);
+      throw error;
+    }
   }
 
   static async getMesData() {

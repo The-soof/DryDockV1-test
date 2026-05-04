@@ -25,9 +25,16 @@ mock_erp_db = {
 mock_mes_db = {
     "lineStatus": "Running",
     "processSteps": [
+        {"id": "mes-step-kitting", "name": "Material kitting", "station": "Prep T1", "cycleTimeMin": 5.0, "idealCycleTimeMin": 4.5, "machinesActive": 1, "uptimePercent": 98.0, "scrapRatePercent": 0.2, "queueMinutes": 2, "state": "Running"},
         {"id": "mes-step-layup", "name": "Composite layup", "station": "Cell C2", "cycleTimeMin": 12.5, "idealCycleTimeMin": 11.8, "machinesActive": 2, "uptimePercent": 94.0, "scrapRatePercent": 2.5, "queueMinutes": 8, "state": "Running"},
+        {"id": "mes-step-bagging", "name": "Vacuum bagging", "station": "Station V1", "cycleTimeMin": 8.5, "idealCycleTimeMin": 7.0, "machinesActive": 2, "uptimePercent": 92.0, "scrapRatePercent": 1.0, "queueMinutes": 12, "state": "Watch"},
         {"id": "mes-step-cure", "name": "Curing oven", "station": "Oven A1", "cycleTimeMin": 45.0, "idealCycleTimeMin": 41.0, "machinesActive": 1, "uptimePercent": 91.0, "scrapRatePercent": 0.5, "queueMinutes": 18, "state": "Watch"},
-        {"id": "mes-step-trim", "name": "Trimming & inspection", "station": "Inspection Q2", "cycleTimeMin": 8.0, "idealCycleTimeMin": 7.6, "machinesActive": 3, "uptimePercent": 88.0, "scrapRatePercent": 5.0, "queueMinutes": 5, "state": "Watch"}
+        {"id": "mes-step-demold", "name": "Demolding & tool prep", "station": "Station D3", "cycleTimeMin": 6.0, "idealCycleTimeMin": 5.5, "machinesActive": 2, "uptimePercent": 96.0, "scrapRatePercent": 0.8, "queueMinutes": 4, "state": "Running"},
+        {"id": "mes-step-cnc", "name": "5-Axis CNC routing", "station": "CNC M1", "cycleTimeMin": 15.0, "idealCycleTimeMin": 14.2, "machinesActive": 1, "uptimePercent": 85.0, "scrapRatePercent": 3.0, "queueMinutes": 25, "state": "Risk"},
+        {"id": "mes-step-ndt", "name": "Ultrasonic NDT", "station": "Scan Bay 1", "cycleTimeMin": 10.0, "idealCycleTimeMin": 9.0, "machinesActive": 1, "uptimePercent": 99.0, "scrapRatePercent": 0.1, "queueMinutes": 5, "state": "Running"},
+        {"id": "mes-step-trim", "name": "Manual trim & inspect", "station": "Inspection Q2", "cycleTimeMin": 8.0, "idealCycleTimeMin": 7.6, "machinesActive": 3, "uptimePercent": 88.0, "scrapRatePercent": 5.0, "queueMinutes": 5, "state": "Watch"},
+        {"id": "mes-step-paint", "name": "Surface finish & paint", "station": "Paint Booth 1", "cycleTimeMin": 22.0, "idealCycleTimeMin": 20.0, "machinesActive": 1, "uptimePercent": 90.0, "scrapRatePercent": 4.5, "queueMinutes": 14, "state": "Watch"},
+        {"id": "mes-step-assembly", "name": "Final assembly", "station": "Assembly Bay F1", "cycleTimeMin": 18.0, "idealCycleTimeMin": 16.5, "machinesActive": 2, "uptimePercent": 95.0, "scrapRatePercent": 1.5, "queueMinutes": 8, "state": "Running"}
     ]
 }
 

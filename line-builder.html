@@ -121,12 +121,24 @@
                               </label>
                               
                               <label>
-                                <span>Cycle Time (Min)</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px;">
+                                  <span>Cycle Time</span>
+                                  <select id="cycleTimeUnit" style="width: auto; min-height: 28px; padding: 0 8px; font-size: 0.75rem; border-radius: 6px;">
+                                    <option value="min">Minutes</option>
+                                    <option value="hr">Hours</option>
+                                  </select>
+                                </div>
                                 <select id="mapCycleTime"></select>
                               </label>
-                        
+
                               <label>
-                                <span>Scrap Rate (%)</span>
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 4px;">
+                                  <span>Quality Metric</span>
+                                  <select id="scrapFormat" style="width: auto; min-height: 28px; padding: 0 8px; font-size: 0.75rem; border-radius: 6px;">
+                                    <option value="scrap">Scrap %</option>
+                                    <option value="yield">Yield %</option>
+                                  </select>
+                                </div>
                                 <select id="mapScrapRate"></select>
                               </label>
                         

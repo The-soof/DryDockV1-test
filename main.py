@@ -42,11 +42,24 @@ async def upload_csv(file: UploadFile = File(...), mapping: str = Form(...)):
     process_steps = []
     # 3. Use the dynamic mapped keys to pull the data
     for i, row in enumerate(reader):
+        # Handle Cycle Time Math
+        raw_ct = float(row.get(map_dict['cycleTime'], 1.0))
+        if map_dict.get('cycleTimeUnit') == 'hr':
+            final_cycle_time = raw_ct * 60.0
+        else:
+            final_cycle_time = raw_ct
+        # Handle Quality Math
+        raw_scrap = float(row.get(map_dict['scrapRate'], 0.0))
+        if map_dict.get('scrapFormat') == 'yield':
+            final_scrap_rate = max(0.0, 100.0 - raw_scrap)
+        else:
+            final_scrap_rate = raw_scrap
+
         process_steps.append({
             "id": f"csv-step-{i}",
             "name": row.get(map_dict['name'], f"Step {i+1}"),
-            "cycleTime": float(row.get(map_dict['cycleTime'], 1.0)),
-            "scrapRate": float(row.get(map_dict['scrapRate'], 0.0)),
+            "cycleTime": final_cycle_time,
+            "scrapRate": final_scrap_rate,
             "machines": int(row.get(map_dict['machines'], 1)),
             "shiftHours": 8.0,
             "materialSource": "purchased"

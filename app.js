@@ -1937,7 +1937,10 @@ function initBuilderPage() {
                 name: document.getElementById('mapName').value,
                 cycleTime: document.getElementById('mapCycleTime').value,
                 scrapRate: document.getElementById('mapScrapRate').value,
-                machines: document.getElementById('mapMachines').value
+                machines: document.getElementById('mapMachines').value,
+                // ADD THESE TWO LINES:
+                cycleTimeUnit: document.getElementById('cycleTimeUnit').value,
+                scrapFormat: document.getElementById('scrapFormat').value
             }));
 
             try {

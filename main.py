@@ -6,6 +6,7 @@ from optimizer import build_response
 import csv
 import io
 import json
+import copy
 
 app = FastAPI()
 
@@ -25,16 +26,16 @@ mock_erp_db = {
 mock_mes_db = {
     "lineStatus": "Running",
     "processSteps": [
-        {"id": "mes-step-kitting", "name": "Material kitting", "station": "Prep T1", "cycleTimeMin": 5.0, "idealCycleTimeMin": 4.5, "machinesActive": 1, "uptimePercent": 98.0, "scrapRatePercent": 0.2, "queueMinutes": 2, "state": "Running"},
-        {"id": "mes-step-layup", "name": "Composite layup", "station": "Cell C2", "cycleTimeMin": 12.5, "idealCycleTimeMin": 11.8, "machinesActive": 2, "uptimePercent": 94.0, "scrapRatePercent": 2.5, "queueMinutes": 8, "state": "Running"},
-        {"id": "mes-step-bagging", "name": "Vacuum bagging", "station": "Station V1", "cycleTimeMin": 8.5, "idealCycleTimeMin": 7.0, "machinesActive": 2, "uptimePercent": 92.0, "scrapRatePercent": 1.0, "queueMinutes": 12, "state": "Watch"},
-        {"id": "mes-step-cure", "name": "Curing oven", "station": "Oven A1", "cycleTimeMin": 45.0, "idealCycleTimeMin": 41.0, "machinesActive": 1, "uptimePercent": 91.0, "scrapRatePercent": 0.5, "queueMinutes": 18, "state": "Watch"},
+        {"id": "mes-step-kitting", "name": "Material kitting", "station": "Prep T1", "cycleTimeMin": 3.2, "idealCycleTimeMin": 3.0, "machinesActive": 1, "uptimePercent": 98.0, "scrapRatePercent": 0.2, "queueMinutes": 2, "state": "Running"},
+        {"id": "mes-step-layup", "name": "Composite layup", "station": "Cell C2", "cycleTimeMin": 6.8, "idealCycleTimeMin": 6.4, "machinesActive": 2, "uptimePercent": 94.0, "scrapRatePercent": 2.5, "queueMinutes": 8, "state": "Running"},
+        {"id": "mes-step-bagging", "name": "Vacuum bagging", "station": "Station V1", "cycleTimeMin": 6.5, "idealCycleTimeMin": 6.0, "machinesActive": 2, "uptimePercent": 92.0, "scrapRatePercent": 1.0, "queueMinutes": 12, "state": "Watch"},
+        {"id": "mes-step-cure", "name": "Curing oven", "station": "Oven A1", "cycleTimeMin": 3.5, "idealCycleTimeMin": 3.3, "machinesActive": 1, "uptimePercent": 91.0, "scrapRatePercent": 0.5, "queueMinutes": 18, "state": "Watch"},
         {"id": "mes-step-demold", "name": "Demolding & tool prep", "station": "Station D3", "cycleTimeMin": 6.0, "idealCycleTimeMin": 5.5, "machinesActive": 2, "uptimePercent": 96.0, "scrapRatePercent": 0.8, "queueMinutes": 4, "state": "Running"},
-        {"id": "mes-step-cnc", "name": "5-Axis CNC routing", "station": "CNC M1", "cycleTimeMin": 15.0, "idealCycleTimeMin": 14.2, "machinesActive": 1, "uptimePercent": 85.0, "scrapRatePercent": 3.0, "queueMinutes": 25, "state": "Risk"},
-        {"id": "mes-step-ndt", "name": "Ultrasonic NDT", "station": "Scan Bay 1", "cycleTimeMin": 10.0, "idealCycleTimeMin": 9.0, "machinesActive": 1, "uptimePercent": 99.0, "scrapRatePercent": 0.1, "queueMinutes": 5, "state": "Running"},
-        {"id": "mes-step-trim", "name": "Manual trim & inspect", "station": "Inspection Q2", "cycleTimeMin": 8.0, "idealCycleTimeMin": 7.6, "machinesActive": 3, "uptimePercent": 88.0, "scrapRatePercent": 5.0, "queueMinutes": 5, "state": "Watch"},
-        {"id": "mes-step-paint", "name": "Surface finish & paint", "station": "Paint Booth 1", "cycleTimeMin": 22.0, "idealCycleTimeMin": 20.0, "machinesActive": 1, "uptimePercent": 90.0, "scrapRatePercent": 4.5, "queueMinutes": 14, "state": "Watch"},
-        {"id": "mes-step-assembly", "name": "Final assembly", "station": "Assembly Bay F1", "cycleTimeMin": 18.0, "idealCycleTimeMin": 16.5, "machinesActive": 2, "uptimePercent": 95.0, "scrapRatePercent": 1.5, "queueMinutes": 8, "state": "Running"}
+        {"id": "mes-step-cnc", "name": "5-Axis CNC routing", "station": "CNC M1", "cycleTimeMin": 3.8, "idealCycleTimeMin": 3.4, "machinesActive": 1, "uptimePercent": 85.0, "scrapRatePercent": 3.0, "queueMinutes": 25, "state": "Risk"},
+        {"id": "mes-step-ndt", "name": "Ultrasonic NDT", "station": "Scan Bay 1", "cycleTimeMin": 3.3, "idealCycleTimeMin": 3.0, "machinesActive": 1, "uptimePercent": 99.0, "scrapRatePercent": 0.1, "queueMinutes": 5, "state": "Running"},
+        {"id": "mes-step-trim", "name": "Manual trim & inspect", "station": "Inspection Q2", "cycleTimeMin": 9.8, "idealCycleTimeMin": 9.2, "machinesActive": 3, "uptimePercent": 88.0, "scrapRatePercent": 5.0, "queueMinutes": 5, "state": "Watch"},
+        {"id": "mes-step-paint", "name": "Surface finish & paint", "station": "Paint Booth 1", "cycleTimeMin": 3.6, "idealCycleTimeMin": 3.4, "machinesActive": 1, "uptimePercent": 90.0, "scrapRatePercent": 4.5, "queueMinutes": 14, "state": "Watch"},
+        {"id": "mes-step-assembly", "name": "Final assembly", "station": "Assembly Bay F1", "cycleTimeMin": 7.0, "idealCycleTimeMin": 6.5, "machinesActive": 2, "uptimePercent": 95.0, "scrapRatePercent": 1.5, "queueMinutes": 8, "state": "Running"}
     ]
 }
 
@@ -82,13 +83,15 @@ async def optimize_line(payload: Dict[str, Any]):
 # 2. NEW: The Live Factory Feed API (GET)
 @app.get("/api/live-feed")
 async def get_live_feed():
-    # Here, we simulate the "live" variance you originally had in JS.
-    # We add slight random fluctuations to the scrap rate and cycle times to make the dashboard blink and update naturally.
-    for step in mock_mes_db["processSteps"]:
-        step["cycleTimeMin"] = round(step["cycleTimeMin"] * random.uniform(0.98, 1.02), 2)
-        step["scrapRatePercent"] = round(max(0, step["scrapRatePercent"] + random.uniform(-0.2, 0.2)), 2)
+    # 1. Create a fresh copy of the baseline data so math doesn't compound infinitely!
+    live_mes = copy.deepcopy(mock_mes_db)
+    for step in live_mes["processSteps"]:
+        # 2. Fluctuate around the IDEAL time, not the current time
+        step["cycleTimeMin"] = round(step["idealCycleTimeMin"] * random.uniform(1.0, 1.15), 2)
+        # 3. Fluctuate around the baseline scrap rate, not the previous loop's rate
+        step["scrapRatePercent"] = round(max(0, step["scrapRatePercent"] + random.uniform(-0.8, 1.2)), 2)
     return {
-        "mes": mock_mes_db,
+        "mes": live_mes,
         "erp": mock_erp_db
     }
 

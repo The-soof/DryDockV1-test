@@ -70,20 +70,16 @@
           <div class="planner-layout">
             <aside class="control-panel">
               <div class="control-card">
-                <p class="control-title">Live feed</p>
-                <p class="control-copy">
-                  The feed is currently backed by a mock adapter and polling refresh, which
-                  keeps the app ready for a future backend MES/ERP bridge.
+                <p class="control-title">Timeframe</p>
+                <div class="chip-list" id="timeframeFilters"></div>
+                <p class="input-detail" id="timeframeDetail">
+                  Real-time telemetry and active constraints.
                 </p>
-                <div class="scenario-list" id="scenarioList"></div>
               </div>
 
               <div class="control-card">
-                <p class="control-title">Focus filters</p>
-                <div class="chip-list" id="inputChips"></div>
-                <p class="input-detail" id="inputDetail">
-                  Select one or more live views to narrow the dashboard summary.
-                </p>
+                <p class="control-title">Display view</p>
+                <div class="scenario-list" id="scenarioList"></div>
               </div>
 
               <div class="control-card">

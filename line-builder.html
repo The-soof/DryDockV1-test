@@ -95,11 +95,23 @@
                   </div>
                 </form>
               </div>
-                <div class="csv-upload-card" style="margin-bottom: 20px; padding: 15px; border: 1px dashed #ccc;">
-                    <h4>Bulk Upload (CSV)</h4>
-                    <p style="font-size: 0.8rem; color: #666;">Requires headers: Name, Station, CycleTime, ScrapRate, Machines</p>
-                    <input type="file" id="csvFileInput" accept=".csv" />
-                    <button id="uploadCsvBtn" class="primary-btn" style="margin-top: 10px;">Upload & Parse</button>
+                <div class="control-card">
+                    <p class="control-title">Bulk upload (CSV)</p>
+                    <div class="builder-form">
+                        <label>
+                            <span style="font-size: 0.85rem; color: #666; margin-bottom: 8px; display: block;">
+                                Requires headers: Name, Station, CycleTime, ScrapRate, Machines
+                            </span>
+    
+                            <input type="file" id="csvFileInput" accept=".csv" style="display: none;" />
+    
+                            <label for="csvFileInput" id="fileDropZone" style="display: block; padding: 20px; border: 2px solid #121d34; border-radius: 6px; text-align: center; cursor: pointer; background: #11182d; margin-bottom: 10px; transition: all 0.2s;">
+                                <span id="fileNameDisplay" style="color: #fafafa; font-weight: 500;">📁 Click to select a CSV file</span>
+                            </label>
+    
+                        </label>
+                        <button type="button" id="uploadCsvBtn" class="button button-secondary full-button">Upload & Parse</button>
+                    </div>
                 </div>
               <div class="control-card">
                 <p class="control-title">Components & sourcing</p>

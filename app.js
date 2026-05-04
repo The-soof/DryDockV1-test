@@ -1152,33 +1152,13 @@ let processSteps = [
   }
 ];
 
-const components = [
-  {
-    id: "component-carbon",
-    name: "Carbon pre-preg roll",
-    source: "purchase",
-    cost: 34,
-    leadTime: 2
-  },
-  {
-    id: "component-fixture",
-    name: "Assembly fixture insert",
-    source: "produce",
-    cost: 18,
-    leadTime: 6
-  }
-];
-
 let activeStepId = processSteps[0]?.id || null;
 let activeAnalysis = { type: "step", id: activeStepId };
 
 const processForm = document.getElementById("processForm");
-const componentForm = document.getElementById("componentForm");
 const goalForm = document.getElementById("goalForm");
 const analyzeLineButton = document.getElementById("analyzeLineButton");
 const clearLineButton = document.getElementById("clearLineButton");
-const clearComponentsButton = document.getElementById("clearComponentsButton");
-const componentList = document.getElementById("componentList");
 const processTimeline = document.getElementById("processTimeline");
 const stepDetail = document.getElementById("stepDetail");
 const activeStepTitle = document.getElementById("activeStepTitle");
@@ -1197,12 +1177,9 @@ const builderMetricEls = {
 
 const hasBuilderPage = Boolean(
   processForm &&
-  componentForm &&
   goalForm &&
   analyzeLineButton &&
   clearLineButton &&
-  clearComponentsButton &&
-  componentList &&
   processTimeline &&
   stepDetail &&
   activeStepTitle &&
@@ -1339,13 +1316,10 @@ function renderBuilder() {
 
   const analysis = analyzeProcesses();
   const hasActiveStep = activeAnalysis.type === "step" && analysis.steps.some((step) => step.id === activeAnalysis.id);
-  const hasActiveComponent = activeAnalysis.type === "component" && components.some((component) => component.id === activeAnalysis.id);
 
-  if (!hasActiveStep && !hasActiveComponent) {
+  if (!hasActiveStep) {
     if (analysis.steps[0]) {
       activeAnalysis = { type: "step", id: analysis.steps[0].id };
-    } else if (components[0]) {
-      activeAnalysis = { type: "component", id: components[0].id };
     } else {
       activeAnalysis = { type: "empty", id: null };
     }
@@ -1353,12 +1327,10 @@ function renderBuilder() {
 
   activeStepId = activeAnalysis.type === "step" ? activeAnalysis.id : analysis.steps[0]?.id || null;
   const activeStep = analysis.steps.find((step) => step.id === activeAnalysis.id);
-  const activeComponent = components.find((component) => component.id === activeAnalysis.id);
 
-  renderComponentList();
   renderBuilderMetrics(analysis);
   renderTimeline(analysis);
-  renderAnalysisDetail(activeStep, activeComponent);
+  renderStepDetail(activeStep);
   renderRecommendations(analysis);
 }
 
@@ -1384,21 +1356,7 @@ function renderTimeline(analysis) {
     return;
   }
 
-  const dependencyItems = components.map((component) => {
-    const hours = component.source === "purchase"
-      ? numberValue(component.leadTime) * 24
-      : numberValue(component.leadTime);
-
-    return {
-      id: component.id,
-      label: `${component.name} dependency`,
-      meta: component.source === "purchase" ? `${component.leadTime} day lead` : `${component.leadTime} hr internal cycle`,
-      duration: Math.max(1, hours),
-      type: "dependency",
-      analysisType: "component"
-    };
-  });
-  const processItems = analysis.steps.map((step) => {
+  const timelineItems = analysis.steps.map((step) => {
     const lotSize = 100;
     const duration = step.metrics.outputPerHour > 0 ? lotSize / step.metrics.outputPerHour : 0;
 
@@ -1411,7 +1369,7 @@ function renderTimeline(analysis) {
       analysisType: "step"
     };
   });
-  const timelineItems = [...dependencyItems, ...processItems];
+  
   const totalDuration = timelineItems.reduce((sum, item) => sum + item.duration, 0) || 1;
   let cursor = 0;
 
@@ -1432,7 +1390,7 @@ function renderTimeline(analysis) {
           data-type="${item.type}"
           data-analysis-type="${item.analysisType}"
           data-analysis-id="${item.id}"
-          draggable="${item.analysisType === "step"}"
+          draggable="true"
           type="button"
         >
           <div>
@@ -1447,19 +1405,6 @@ function renderTimeline(analysis) {
       `;
     })
     .join("");
-}
-
-function renderAnalysisDetail(step, component) {
-  if (!hasBuilderPage) {
-    return;
-  }
-
-  if (component) {
-    renderComponentDetail(component);
-    return;
-  }
-
-  renderStepDetail(step);
 }
 
 function renderStepDetail(step) {
@@ -1507,86 +1452,6 @@ function renderStepDetail(step) {
   `;
 }
 
-function renderComponentDetail(component) {
-  if (!hasBuilderPage) {
-    return;
-  }
-
-  const alternative = componentAlternative(component);
-  const currentTime = component.source === "purchase"
-    ? `${component.leadTime} days`
-    : `${component.leadTime} hours`;
-  const alternativeTime = alternative.source === "purchase"
-    ? `${formatNumber(alternative.leadTime)} days`
-    : `${formatNumber(alternative.leadTime)} hours`;
-
-  activeStepTitle.textContent = component.name;
-  activeBottleneckBadge.classList.add("hidden");
-  stepDetail.innerHTML = `
-    <div class="detail-grid">
-      <div><span>Current source</span><strong>${component.source === "purchase" ? "Purchased" : "In-house"}</strong></div>
-      <div><span>Current cost</span><strong>$${formatNumber(component.cost, 2)}</strong></div>
-      <div><span>Current timing</span><strong>${currentTime}</strong></div>
-      <div><span>Modeled alternative</span><strong>${alternative.source === "purchase" ? "Buy" : "Make"}</strong></div>
-    </div>
-    <article class="recommendation-card">
-      Alternative estimate: $${formatNumber(alternative.cost, 2)} per unit with ${alternativeTime} timing. ${makeVsBuyRecommendations().find((item) => item.includes(component.name)) || "Keep monitoring this component as demand changes."}
-    </article>
-    <button class="button button-danger full-button" data-remove-component="${component.id}" type="button">Remove Component</button>
-  `;
-}
-
-function componentAlternative(component) {
-  const source = component.source;
-  const cost = numberValue(component.cost);
-  const time = numberValue(component.leadTime);
-
-  if (source === "purchase") {
-    return {
-      source: "produce",
-      cost: cost * 1.18,
-      leadTime: Math.max(4, time * 24 * 0.7),
-      unit: "hours"
-    };
-  }
-
-  return {
-    source: "purchase",
-    cost: cost * 0.88,
-    leadTime: Math.max(1, time / 24),
-    unit: "days"
-  };
-}
-
-function makeVsBuyRecommendations() {
-  // Make-vs-buy compares the entered current source against a lightweight estimated alternative so the static prototype can still flag sourcing tradeoffs.
-  return components.map((component) => {
-    const alternative = componentAlternative(component);
-    const currentTimeHours = component.source === "purchase"
-      ? numberValue(component.leadTime) * 24
-      : numberValue(component.leadTime);
-    const alternativeTimeHours = alternative.source === "purchase"
-      ? alternative.leadTime * 24
-      : alternative.leadTime;
-    const currentCost = numberValue(component.cost);
-    const alternativeCost = alternative.cost;
-
-    if (alternativeCost < currentCost && alternativeTimeHours < currentTimeHours) {
-      return `Switch ${component.name} to ${alternative.source === "purchase" ? "purchased supply" : "internal production"}; the modeled alternative is faster and about ${formatNumber(((currentCost - alternativeCost) / currentCost) * 100)}% cheaper.`;
-    }
-
-    if (component.source === "purchase" && currentTimeHours > 72) {
-      return `Qualify a second supplier for ${component.name}; current purchased lead time adds ${formatNumber(currentTimeHours)} hours before the line can release.`;
-    }
-
-    if (component.source === "produce" && currentTimeHours > 8) {
-      return `Evaluate buying ${component.name} for rush orders; current in-house cycle time consumes ${formatNumber(currentTimeHours)} hours before downstream work can start.`;
-    }
-
-    return `Keep ${component.name} ${component.source === "purchase" ? "purchased" : "in-house"} for now; current source is competitive on cost or lead time.`;
-  });
-}
-
 function renderRecommendations(analysis) {
   if (!hasBuilderPage) {
     return;
@@ -1604,31 +1469,11 @@ function renderRecommendations(analysis) {
       `Cut ${step.name} scrap from ${formatNumber(step.scrapRate)}% toward ${formatNumber(Math.max(0, step.scrapRate - 1))}% with incoming material checks and first-article verification.`
     ];
   });
-  const sourcingRecommendations = makeVsBuyRecommendations();
-  const allRecommendations = [...bottleneckRecommendations, ...sourcingRecommendations].slice(0, 8);
+  const allRecommendations = [...bottleneckRecommendations].slice(0, 8);
 
   recommendationList.innerHTML = allRecommendations.length
     ? allRecommendations.map((item) => `<article class="recommendation-card">${item}</article>`).join("")
     : '<p class="empty-state">No constraints flagged yet. Add process steps or components to generate recommendations.</p>';
-}
-
-function renderComponentList() {
-  if (!hasBuilderPage) {
-    return;
-  }
-
-  componentList.innerHTML = components.length
-    ? components
-        .map(
-          (component) => `
-            <article class="component-card">
-              <button data-component-id="${component.id}" type="button">${component.name}</button>
-              <span>${component.source === "purchase" ? "Purchased" : "Produced"} | $${formatNumber(component.cost, 2)} | ${component.leadTime} ${component.source === "purchase" ? "days" : "hrs"}</span>
-            </article>
-          `
-        )
-        .join("")
-    : '<p class="empty-state">No components added yet.</p>';
 }
 
 function updateGoalResponse(goal = {}) {
@@ -1694,23 +1539,6 @@ function initBuilderPage() {
     activeStepId = step.id;
     activeAnalysis = { type: "step", id: step.id };
     processForm.reset();
-    renderBuilder();
-  });
-
-  componentForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new FormData(componentForm);
-    const component = {
-      id: createId("component"),
-      name: formData.get("name").trim(),
-      source: formData.get("source"),
-      cost: numberValue(formData.get("cost"), 0),
-      leadTime: numberValue(formData.get("leadTime"), 0)
-    };
-
-    components.push(component);
-    activeAnalysis = { type: "component", id: component.id };
-    componentForm.reset();
     renderBuilder();
   });
 
@@ -1792,22 +1620,9 @@ function initBuilderPage() {
     renderBuilder();
   });
 
-  componentList.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-component-id]");
-
-    if (!button) {
-      return;
-    }
-
-    activeAnalysis = { type: "component", id: button.dataset.componentId };
-    renderBuilder();
-  });
-
   clearLineButton.addEventListener("click", () => {
     processSteps.splice(0, processSteps.length);
-    activeAnalysis = components[0]
-      ? { type: "component", id: components[0].id }
-      : { type: "empty", id: null };
+    activeAnalysis = { type: "empty", id: null };
     renderBuilder();
     updateGoalResponse({
       targetRate: document.getElementById("targetRate").value,
@@ -1816,33 +1631,20 @@ function initBuilderPage() {
     });
   });
 
-  clearComponentsButton.addEventListener("click", () => {
-    components.splice(0, components.length);
-    activeAnalysis = processSteps[0]
-      ? { type: "step", id: processSteps[0].id }
-      : { type: "empty", id: null };
-    renderBuilder();
-  });
+  stepDetail.addEventListener("click", (event) => {
+    const removeStepButton = event.target.closest("[data-remove-step]");
 
-  stepDetail.addEventListener("submit", (event) => {
-    if (event.target.id !== "stepEditForm") {
-      return;
+    if (removeStepButton) {
+      const index = processSteps.findIndex((step) => step.id === removeStepButton.dataset.removeStep);
+      if (index < 0) {
+        return;
+      }
+      processSteps.splice(index, 1);
+      activeAnalysis = processSteps[index] || processSteps[index - 1]
+        ? { type: "step", id: (processSteps[index] || processSteps[index - 1]).id }
+        : { type: "empty", id: null };
+      renderBuilder();
     }
-
-    event.preventDefault();
-    const step = processSteps.find((item) => item.id === activeAnalysis.id);
-    const formData = new FormData(event.target);
-
-    if (!step) {
-      return;
-    }
-
-    step.cycleTime = numberValue(formData.get("cycleTime"), step.cycleTime);
-    step.machines = numberValue(formData.get("machines"), step.machines);
-    step.shiftHours = numberValue(formData.get("shiftHours"), step.shiftHours);
-    step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
-    step.materialSource = formData.get("materialSource");
-    renderBuilder();
   });
 
     const uploadCsvBtn = document.getElementById('uploadCsvBtn');
@@ -1978,38 +1780,6 @@ function initBuilderPage() {
             }
         });
     }
-  stepDetail.addEventListener("click", (event) => {
-    const removeStepButton = event.target.closest("[data-remove-step]");
-    const removeComponentButton = event.target.closest("[data-remove-component]");
-
-    if (removeStepButton) {
-      const index = processSteps.findIndex((step) => step.id === removeStepButton.dataset.removeStep);
-      if (index < 0) {
-        return;
-      }
-      processSteps.splice(index, 1);
-      activeAnalysis = processSteps[index] || processSteps[index - 1]
-        ? { type: "step", id: (processSteps[index] || processSteps[index - 1]).id }
-        : components[0]
-          ? { type: "component", id: components[0].id }
-          : { type: "empty", id: null };
-      renderBuilder();
-    }
-
-    if (removeComponentButton) {
-      const index = components.findIndex((component) => component.id === removeComponentButton.dataset.removeComponent);
-      if (index < 0) {
-        return;
-      }
-      components.splice(index, 1);
-      activeAnalysis = components[index] || components[index - 1]
-        ? { type: "component", id: (components[index] || components[index - 1]).id }
-        : processSteps[0]
-          ? { type: "step", id: processSteps[0].id }
-          : { type: "empty", id: null };
-      renderBuilder();
-    }
-  });
 
   renderBuilder();
   updateGoalResponse();

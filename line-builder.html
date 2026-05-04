@@ -153,37 +153,6 @@
                         <button type="button" id="uploadCsvBtn" class="button button-secondary full-button">Upload & Parse</button>
                     </div>
                 </div>
-              <div class="control-card">
-                <p class="control-title">Components & sourcing</p>
-                <form class="builder-form" id="componentForm">
-                  <label>
-                    <span>Component / part name</span>
-                    <input id="componentName" name="name" type="text" placeholder="Carbon pre-preg roll" required />
-                  </label>
-                  <div class="form-grid">
-                    <label>
-                      <span>Source</span>
-                      <select id="componentSource" name="source">
-                        <option value="purchase">Purchase</option>
-                        <option value="produce">Produce</option>
-                      </select>
-                    </label>
-                    <label>
-                      <span>Cost / unit</span>
-                      <input id="componentCost" name="cost" type="number" min="0" step="0.01" required />
-                    </label>
-                  </div>
-                  <label>
-                    <span>Lead time or cycle time</span>
-                    <input id="componentLeadTime" name="leadTime" type="number" min="0" step="0.1" required />
-                  </label>
-                  <div class="button-row">
-                    <button class="button button-secondary full-button" type="submit">Add Component</button>
-                    <button class="button button-ghost full-button" id="clearComponentsButton" type="button">Clear Components</button>
-                  </div>
-                </form>
-                <div class="component-list" id="componentList"></div>
-              </div>
 
               <div class="control-card">
                 <p class="control-title">Production goal</p>

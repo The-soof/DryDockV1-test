@@ -44,15 +44,11 @@ async def upload_csv(file: UploadFile = File(...)):
         process_steps.append({
             "id": f"csv-step-{i}",
             "name": row.get("Name", f"Step {i+1}"),
-            "station": row.get("Station", "Unknown Cell"),
-            "cycleTimeMin": float(row.get("CycleTime", 0)),
-            "scrapRatePercent": float(row.get("ScrapRate", 0)),
-            "machinesActive": int(row.get("Machines", 1)),
-            # Filling in default mock data for the fields the CSV might not have
-            "idealCycleTimeMin": float(row.get("CycleTime", 0)) * 0.95, 
-            "uptimePercent": 100.0,
-            "queueMinutes": 0,
-            "state": "Running"
+            "cycleTime": float(row.get("CycleTime", 1.0)),
+            "scrapRate": float(row.get("ScrapRate", 0.0)),
+            "machines": int(row.get("Machines", 1)),
+            "shiftHours": 8.0,             # Default for the builder
+            "materialSource": "purchased"  # Default for the builder
         })
 
     # 4. Send the formatted list back to the browser

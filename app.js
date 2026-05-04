@@ -1849,6 +1849,79 @@ function initBuilderPage() {
     const csvFileInput = document.getElementById('csvFileInput');
 
     if (uploadCsvBtn && csvFileInput) {
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const fileDropZone = document.getElementById('fileDropZone');
+
+        // The ERP Alias Dictionary
+        const columnAliases = {
+            name: ['name', 'process', 'step', 'operation', 'description', 'op_description'],
+            cycleTime: ['cycletime', 'cycle_time', 'run_time', 'time_per_part', 'processing_time', 'ct'],
+            scrapRate: ['scraprate', 'scrap_rate', 'scrap', 'defect', 'quality', 'yield'],
+            machines: ['machines', 'operators', 'crew_size', 'resources', 'headcount']
+        };
+
+        // Watch for file selection to trigger the Auto-Mapper
+        csvFileInput.addEventListener('change', async function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                if(fileNameDisplay) {
+                    fileNameDisplay.textContent = "📄 " + file.name;
+                    fileNameDisplay.style.color = "#f2ecdf"; // Matches your var(--text)
+                }
+                if(fileDropZone) fileDropZone.style.borderColor = "rgba(208, 138, 90, 0.48)"; 
+
+                // 1. Read just the first line of the CSV to get headers
+                const text = await file.text();
+                const firstLine = text.split('\n')[0].trim();
+                const headers = firstLine.split(',').map(h => h.trim());
+
+                // 2. Populate the dropdown menus
+                const selects = [document.getElementById('mapName'), document.getElementById('mapCycleTime'), document.getElementById('mapScrapRate'), document.getElementById('mapMachines')];
+                
+                selects.forEach(select => {
+                    if(!select) return;
+                    select.innerHTML = ''; 
+                    headers.forEach(h => {
+                        const opt = document.createElement('option');
+                        opt.value = h;
+                        opt.textContent = h;
+                        select.appendChild(opt);
+                    });
+                });
+
+                // 3. The Heuristic Matcher: Guess the best fit
+                function guessHeader(headerList, aliasList) {
+                    for (let h of headerList) {
+                        const cleanH = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        for (let a of aliasList) {
+                            const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            if (cleanH.includes(cleanA) || cleanA.includes(cleanH)) return h;
+                        }
+                    }
+                    return headerList[0]; // Fallback if no match
+                }
+
+                if(document.getElementById('mapName')) document.getElementById('mapName').value = guessHeader(headers, columnAliases.name);
+                if(document.getElementById('mapCycleTime')) document.getElementById('mapCycleTime').value = guessHeader(headers, columnAliases.cycleTime);
+                if(document.getElementById('mapScrapRate')) document.getElementById('mapScrapRate').value = guessHeader(headers, columnAliases.scrapRate);
+                if(document.getElementById('mapMachines')) document.getElementById('mapMachines').value = guessHeader(headers, columnAliases.machines);
+
+                // 4. Reveal the Mapping UI
+                if(document.getElementById('columnMappingUI')) document.getElementById('columnMappingUI').style.display = 'block';
+                uploadCsvBtn.innerText = "Confirm Mapping & Parse";
+
+            } else {
+                // Reset if they cancel
+                if(fileNameDisplay) {
+                    fileNameDisplay.textContent = "📁 Click to select a CSV file";
+                    fileNameDisplay.style.color = "#a9b4c6"; // Matches your var(--muted)
+                }
+                if(fileDropZone) fileDropZone.style.borderColor = "#101b31"; // Matches your var(--panel-strong)
+                if(document.getElementById('columnMappingUI')) document.getElementById('columnMappingUI').style.display = 'none';
+                uploadCsvBtn.innerText = "Upload & Parse";
+            }
+        });
+
         uploadCsvBtn.addEventListener('click', async () => {
             const file = csvFileInput.files[0];
         
@@ -1857,9 +1930,15 @@ function initBuilderPage() {
                 return;
             }
 
-            // 1. Package the file into a form payload
+            // 1. Package the file AND the column mapping into the payload
             const formData = new FormData();
             formData.append("file", file);
+            formData.append("mapping", JSON.stringify({
+                name: document.getElementById('mapName').value,
+                cycleTime: document.getElementById('mapCycleTime').value,
+                scrapRate: document.getElementById('mapScrapRate').value,
+                machines: document.getElementById('mapMachines').value
+            }));
 
             try {
                 // 2. Send it to FastAPI
@@ -1873,16 +1952,21 @@ function initBuilderPage() {
 
                 const data = await response.json();
 
-                // 3. Update the global array (assuming 'processSteps' is your global variable)
-                // This clears out any manual steps and replaces them with the CSV steps
+                // 3. Update the global array
                 processSteps = data.processSteps;
 
-                // 4. Trigger your existing UI refresh function to draw the Gantt chart!
-                renderBuilder(); // (Make sure this matches the exact name of your refresh function)
+                // 4. Trigger UI refresh
+                renderBuilder(); 
             
-                // Clean up
+                // 5. Clean up the UI
                 uploadCsvBtn.innerText = "Upload & Parse";
                 csvFileInput.value = ""; 
+                if(fileNameDisplay) {
+                    fileNameDisplay.textContent = "📁 Click to select a CSV file";
+                    fileNameDisplay.style.color = "#a9b4c6";
+                }
+                if(fileDropZone) fileDropZone.style.borderColor = "#101b31";
+                if(document.getElementById('columnMappingUI')) document.getElementById('columnMappingUI').style.display = 'none';
 
             } catch (error) {
                 console.error("Error parsing CSV:", error);

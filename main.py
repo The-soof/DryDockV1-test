@@ -1,10 +1,11 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from typing import Any, Dict
 import random
 from optimizer import build_response
 import csv
 import io
+import json
 
 app = FastAPI()
 
@@ -31,27 +32,26 @@ mock_mes_db = {
 }
 
 @app.post("/api/upload-csv")
-async def upload_csv(file: UploadFile = File(...)):
-    # 1. Read the file out of the browser's request
+async def upload_csv(file: UploadFile = File(...), mapping: str = Form(...)):
+    # 1. Decode the user's verified mapping rules
+    map_dict = json.loads(mapping)
+    # 2. Read the file
     content = await file.read()
     decoded_content = content.decode('utf-8')
-    # 2. Parse the CSV text
     reader = csv.DictReader(io.StringIO(decoded_content))
     process_steps = []
-    # 3. Loop through each row and format it for the Line Builder
-    # We are using .get() with default fallback values just in case a cell is blank
+    # 3. Use the dynamic mapped keys to pull the data
     for i, row in enumerate(reader):
         process_steps.append({
             "id": f"csv-step-{i}",
-            "name": row.get("Name", f"Step {i+1}"),
-            "cycleTime": float(row.get("CycleTime", 1.0)),
-            "scrapRate": float(row.get("ScrapRate", 0.0)),
-            "machines": int(row.get("Machines", 1)),
-            "shiftHours": 8.0,             # Default for the builder
-            "materialSource": "purchased"  # Default for the builder
+            "name": row.get(map_dict['name'], f"Step {i+1}"),
+            "cycleTime": float(row.get(map_dict['cycleTime'], 1.0)),
+            "scrapRate": float(row.get(map_dict['scrapRate'], 0.0)),
+            "machines": int(row.get(map_dict['machines'], 1)),
+            "shiftHours": 8.0,
+            "materialSource": "purchased"
         })
 
-    # 4. Send the formatted list back to the browser
     return {"processSteps": process_steps}
 
 # 1. The original Optimizer API (POST)

@@ -268,7 +268,6 @@ const scenarioName = document.getElementById("scenarioName");
 const solverMode = document.getElementById("solverMode");
 const narrative = document.getElementById("narrative");
 const scheduleTableBody = document.getElementById("scheduleTableBody");
-const alertList = document.getElementById("alertList");
 const resourceList = document.getElementById("resourceList");
 
 const metricEls = {
@@ -290,7 +289,6 @@ const hasPlannerPage = Boolean(
   solverMode &&
   narrative &&
   scheduleTableBody &&
-  alertList &&
   resourceList
 );
 
@@ -375,17 +373,6 @@ function renderScenario(activeId) {
           <td>${end}</td>
           <td class="${statusClass(status)}">${status}</td>
         </tr>
-      `
-    )
-    .join("");
-
-  alertList.innerHTML = scenario.alerts
-    .map(
-      (alert) => `
-        <article class="alert-card" data-level="${alert.level}">
-          <strong>${alert.title}</strong>
-          <p>${alert.body}</p>
-        </article>
       `
     )
     .join("");
@@ -1065,7 +1052,6 @@ function renderLiveDashboard(snapshot) {
   renderLiveViews(snapshot);
   renderLiveMetrics(snapshot);
   renderLiveSteps(snapshot);
-  renderLiveRecommendations(snapshot);
   renderLiveResources(snapshot);
   renderLiveNarrative(snapshot);
 }

@@ -87,13 +87,9 @@
               </div>
 
               <div class="control-card">
-                <p class="control-title">Optimization stack</p>
-                <ul class="stack-list">
-                  <li>Constraint normalization layer</li>
-                  <li>MES and ERP snapshot merger</li>
-                  <li>Rules-based bottleneck and inventory advisor</li>
-                  <li>Planner explanation and KPI comparison engine</li>
-                </ul>
+                <p class="control-title">ERP constraints</p>
+                <p class="control-copy">Inventory, lead times, and release pressure.</p>
+                <div class="resource-list" id="resourceList"></div>
               </div>
             </aside>
 
@@ -121,7 +117,7 @@
                 </article>
               </section>
 
-              <section class="content-grid">
+              <section style="display: grid; gap: 20px;">
                 <article class="surface schedule-surface">
                   <div class="surface-heading">
                     <div>
@@ -148,26 +144,6 @@
                   </div>
                 </article>
 
-                <article class="surface alerts-surface">
-                  <div class="surface-heading">
-                    <div>
-                      <p class="surface-kicker">Optimizer recommendations</p>
-                      <h4>What to change next</h4>
-                    </div>
-                  </div>
-                  <div class="alert-list" id="alertList"></div>
-                </article>
-
-                <article class="surface">
-                  <div class="surface-heading">
-                    <div>
-                      <p class="surface-kicker">ERP constraints</p>
-                      <h4>Inventory, lead times, and release pressure</h4>
-                    </div>
-                  </div>
-                  <div class="resource-list" id="resourceList"></div>
-                </article>
-
                 <article class="surface">
                   <div class="surface-heading">
                     <div>
@@ -183,7 +159,6 @@
         </section>
       </main>
     </div>
-
     <script src="./app.js"></script>
   </body>
 </html>

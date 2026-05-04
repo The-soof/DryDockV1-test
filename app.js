@@ -15,7 +15,7 @@ const scenarios = [
       riskDelta: "Composite layup remains the pacing resource"
     },
     narrative:
-      "Dry Dock sequences high-priority defense jobs through composite layup first, then protects CNC throughput by front-loading material-ready work. The hybrid layer only activates on the most conflict-heavy machine and tooling clusters, keeping the schedule credible while improving slack on downstream assembly.",
+      "Axiom sequences high-priority defense jobs through composite layup first, then protects CNC throughput by front-loading material-ready work. The hybrid layer only activates on the most conflict-heavy machine and tooling clusters, keeping the schedule credible while improving slack on downstream assembly.",
     alerts: [
       {
         level: "info",
@@ -133,7 +133,7 @@ const scenarios = [
       riskDelta: "Titanium routing is the dominant bottleneck"
     },
     narrative:
-      "When M3 goes down, Dry Dock reroutes one titanium job to a slower backup cell and protects the highest-priority radar frame by shifting lower-priority work into inspection slack. The engine explicitly preserves traceability requirements and flags the cost of every fallback choice.",
+      "When M3 goes down, Axiom reroutes one titanium job to a slower backup cell and protects the highest-priority radar frame by shifting lower-priority work into inspection slack. The engine explicitly preserves traceability requirements and flags the cost of every fallback choice.",
     alerts: [
       {
         level: "critical",
@@ -477,7 +477,7 @@ class ManufacturingAPI {
   static lastRawSnapshot = null;
 
   static baseModel = {
-    lineName: "Dry Dock Composite Line",
+    lineName: "Axiom Composite Line",
     shiftName: "Shift 1",
     refreshIntervalMs: 5000,
     mes: {
@@ -1052,7 +1052,7 @@ function renderLiveNarrative(snapshot) {
     return;
   }
 
-  narrative.textContent = `Dry Dock is ${snapshot.line.healthLabel.toLowerCase()} with ${formatNumber(snapshot.line.oee)}% OEE, ${formatNumber(snapshot.line.throughputPerHour)}/hr throughput, and ${formatNumber(snapshot.line.scrapRate)}% scrap. Focus filters are set to ${activeFilterText}. The last mock MES/ERP refresh landed ${ageText} ago.`;
+  narrative.textContent = `Axiom is ${snapshot.line.healthLabel.toLowerCase()} with ${formatNumber(snapshot.line.oee)}% OEE, ${formatNumber(snapshot.line.throughputPerHour)}/hr throughput, and ${formatNumber(snapshot.line.scrapRate)}% scrap. Focus filters are set to ${activeFilterText}. The last mock MES/ERP refresh landed ${ageText} ago.`;
 }
 
 function renderLiveDashboard(snapshot) {

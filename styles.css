@@ -1,16 +1,16 @@
 :root {
-  --bg: #0b1020;
-  --bg-soft: #11182d;
-  --panel: rgba(13, 20, 38, 0.88);
-  --panel-strong: #121d34;
-  --line: rgba(154, 175, 255, 0.18);
-  --text: #e9eefc;
-  --muted: #9dadcf;
-  --accent: #7cf0c8;
-  --accent-strong: #4fb4ff;
-  --warning: #ffb86c;
-  --danger: #ff7f96;
-  --shadow: 0 24px 80px rgba(3, 8, 20, 0.42);
+  --bg: #07111d;
+  --bg-soft: #0d1730;
+  --panel: rgba(11, 20, 38, 0.9);
+  --panel-strong: #101b31;
+  --line: rgba(208, 138, 90, 0.2);
+  --text: #f2ecdf;
+  --muted: #a9b4c6;
+  --accent: #d08a5a;
+  --accent-strong: #d8dee8;
+  --warning: #f0b06f;
+  --danger: #d97b84;
+  --shadow: 0 24px 80px rgba(2, 6, 14, 0.5);
 }
 
 * {
@@ -25,9 +25,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(79, 180, 255, 0.18), transparent 28%),
-    radial-gradient(circle at 85% 10%, rgba(124, 240, 200, 0.16), transparent 24%),
-    linear-gradient(180deg, #09101f 0%, #08111a 100%);
+    radial-gradient(circle at top left, rgba(208, 138, 90, 0.14), transparent 28%),
+    radial-gradient(circle at 85% 10%, rgba(216, 222, 232, 0.08), transparent 24%),
+    linear-gradient(180deg, #07111d 0%, #050a14 100%);
   color: var(--text);
   font-family: "IBM Plex Sans", sans-serif;
 }
@@ -84,11 +84,20 @@ a {
   display: grid;
   place-items: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, #17304f 0%, #245da0 100%);
-  border: 1px solid rgba(124, 240, 200, 0.26);
-  font-family: "Space Grotesk", sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: var(--accent);
+  background:
+    radial-gradient(circle at 30% 25%, rgba(216, 222, 232, 0.12), transparent 28%),
+    linear-gradient(135deg, #101d34 0%, #0b1426 100%);
+  border: 1px solid rgba(208, 138, 90, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(216, 222, 232, 0.05);
+  overflow: hidden;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  display: block;
+  color: currentColor;
 }
 
 .eyebrow,
@@ -151,8 +160,8 @@ h1 {
 
 .topbar-copy a:hover {
   transform: translateY(-1px);
-  border-color: rgba(124, 240, 200, 0.46);
-  background: rgba(124, 240, 200, 0.08);
+  border-color: rgba(208, 138, 90, 0.45);
+  background: rgba(208, 138, 90, 0.08);
   color: var(--text);
 }
 
@@ -199,8 +208,8 @@ h1 {
 }
 
 .button-primary {
-  background: linear-gradient(135deg, #78f6d0 0%, #47a8ff 100%);
-  color: #071119;
+  background: linear-gradient(135deg, #d08a5a 0%, #d8dee8 100%);
+  color: #07111d;
   font-weight: 700;
 }
 
@@ -210,7 +219,7 @@ h1 {
 }
 
 .button-ghost {
-  border: 1px solid rgba(154, 175, 255, 0.18);
+  border: 1px solid rgba(208, 138, 90, 0.18);
   background: rgba(255, 255, 255, 0.015);
   color: var(--muted);
 }
@@ -265,7 +274,7 @@ h1 {
   padding: 22px;
   border: 1px solid var(--line);
   background:
-    linear-gradient(180deg, rgba(124, 240, 200, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(208, 138, 90, 0.08), transparent 50%),
     var(--panel);
   border-radius: 32px;
   box-shadow: var(--shadow);
@@ -365,7 +374,7 @@ h1 {
   height: 10px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 0 6px rgba(124, 240, 200, 0.14);
+  box-shadow: 0 0 0 6px rgba(208, 138, 90, 0.14);
 }
 
 .planner-layout {
@@ -428,8 +437,8 @@ h1 {
 }
 
 .scenario-button.active {
-  border-color: rgba(124, 240, 200, 0.55);
-  background: rgba(124, 240, 200, 0.09);
+  border-color: rgba(208, 138, 90, 0.55);
+  background: rgba(208, 138, 90, 0.09);
 }
 
 .chip-list {
@@ -452,8 +461,8 @@ h1 {
 .chip:hover,
 .chip.active {
   transform: translateY(-1px);
-  border-color: rgba(124, 240, 200, 0.36);
-  background: rgba(124, 240, 200, 0.08);
+  border-color: rgba(208, 138, 90, 0.36);
+  background: rgba(208, 138, 90, 0.08);
   color: var(--text);
 }
 
@@ -561,8 +570,8 @@ td.status-risk {
 .resource-meta span {
   border-radius: 999px;
   padding: 8px 10px;
-  background: rgba(124, 240, 200, 0.07);
-  border: 1px solid rgba(124, 240, 200, 0.18);
+  background: rgba(208, 138, 90, 0.08);
+  border: 1px solid rgba(208, 138, 90, 0.18);
   color: var(--muted);
   font-size: 0.87rem;
 }
@@ -666,7 +675,7 @@ td.status-risk {
 .builder-form select {
   width: 100%;
   min-height: 44px;
-  border: 1px solid rgba(154, 175, 255, 0.2);
+  border: 1px solid rgba(208, 138, 90, 0.22);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.045);
   color: var(--text);
@@ -678,13 +687,13 @@ td.status-risk {
 
 .builder-form input:focus,
 .builder-form select:focus {
-  border-color: rgba(124, 240, 200, 0.55);
-  background: rgba(124, 240, 200, 0.06);
-  box-shadow: 0 0 0 4px rgba(124, 240, 200, 0.08);
+  border-color: rgba(208, 138, 90, 0.55);
+  background: rgba(208, 138, 90, 0.06);
+  box-shadow: 0 0 0 4px rgba(208, 138, 90, 0.08);
 }
 
 .builder-form select option {
-  color: #071119;
+  color: #07111d;
 }
 
 .form-grid {
@@ -777,8 +786,8 @@ td.status-risk {
 .timeline-row:hover,
 .timeline-row.active {
   transform: translateY(-1px);
-  border-color: rgba(124, 240, 200, 0.48);
-  background: rgba(124, 240, 200, 0.06);
+  border-color: rgba(208, 138, 90, 0.48);
+  background: rgba(208, 138, 90, 0.06);
 }
 
 .timeline-row strong,
@@ -814,8 +823,8 @@ td.status-risk {
   height: 26px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(154, 175, 255, 0.1);
-  border: 1px solid rgba(154, 175, 255, 0.13);
+  background: rgba(216, 222, 232, 0.08);
+  border: 1px solid rgba(216, 222, 232, 0.12);
 }
 
 .timeline-bar {
@@ -823,13 +832,13 @@ td.status-risk {
   top: 4px;
   bottom: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(124, 240, 200, 0.95), rgba(79, 180, 255, 0.95));
-  box-shadow: 0 0 24px rgba(79, 180, 255, 0.22);
+  background: linear-gradient(90deg, rgba(208, 138, 90, 0.98), rgba(216, 222, 232, 0.95));
+  box-shadow: 0 0 24px rgba(208, 138, 90, 0.22);
   transition: left 240ms ease, width 240ms ease;
 }
 
 .timeline-row[data-type="dependency"] .timeline-bar {
-  background: linear-gradient(90deg, rgba(154, 175, 255, 0.72), rgba(124, 240, 200, 0.65));
+  background: linear-gradient(90deg, rgba(216, 222, 232, 0.82), rgba(208, 138, 90, 0.72));
 }
 
 .timeline-row[data-type="bottleneck"] {
@@ -883,7 +892,7 @@ td.status-risk {
 }
 
 .goal-card[data-achievable="true"] {
-  border-color: rgba(124, 240, 200, 0.34);
+  border-color: rgba(208, 138, 90, 0.34);
 }
 
 .goal-card strong {

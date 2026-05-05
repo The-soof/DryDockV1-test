@@ -139,8 +139,25 @@
                     </table>
                   </div>
 
-                  <div id="graphViewContainer" style="display: none; height: 280px; align-items: flex-end; justify-content: space-between; gap: 8px; padding-top: 30px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
+                  <div id="graphViewContainer" style="display: none; flex-direction: column; gap: 24px; padding-top: 10px;">
+                    
+                    <div id="heroChart" style="height: 220px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px;">
+                      </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;">
+                      
+                      <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; height: 180px; display: flex; flex-direction: column;">
+                        <span style="font-size: 0.75rem; color: #a9b4c6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">OEE Performance Trend</span>
+                        <div id="trendChart" style="flex: 1; position: relative;"></div>
+                      </div>
+
+                      <div style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; height: 180px; display: flex; flex-direction: column;">
+                        <span style="font-size: 0.75rem; color: #a9b4c6; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">Highest WIP Queues</span>
+                        <div id="queueChart" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;"></div>
+                      </div>
+
                     </div>
+                  </div>
                 </article>
 
                 <article class="surface">

@@ -219,6 +219,9 @@ function numberValue(value, fallback = 0) {
   const tableViewContainer = document.getElementById("tableViewContainer"); 
   const graphViewContainer = document.getElementById("graphViewContainer"); 
   const resourceList = document.getElementById("resourceList");
+  const heroChart = document.getElementById("heroChart");       // NEW
+  const trendChart = document.getElementById("trendChart");     // NEW
+  const queueChart = document.getElementById("queueChart"); // NEW
   
   const metricEls = {
     onTime: document.getElementById("metricOnTime"), onTimeDelta: document.getElementById("metricOnTimeDelta"),
@@ -227,7 +230,7 @@ function numberValue(value, fallback = 0) {
     risk: document.getElementById("metricRisk"), riskDelta: document.getElementById("metricRiskDelta")
   };
   
-  const hasPlannerPage = Boolean(scenarioList && timeframeFilters && timeframeDetail && scenarioName && solverMode && narrative && scheduleTableBody && resourceList && tableViewContainer && graphViewContainer);
+  const hasPlannerPage = Boolean(scenarioList && timeframeFilters && timeframeDetail && scenarioName && solverMode && narrative && scheduleTableBody && resourceList && tableViewContainer && graphViewContainer && heroChart && trendChart && queueChart);
   
   const livePlannerState = { activeViewId: "steps", snapshot: null, unsubscribe: null };
   
@@ -321,27 +324,80 @@ function numberValue(value, fallback = 0) {
     if (graphViewContainer) graphViewContainer.style.display = isGraphView ? "flex" : "none";
 
     // --- 3. RENDER CONTENT ---
+    // --- 3. RENDER CONTENT ---
     if (isGraphView) {
-      // Draw Graph using the adjusted steps
+      
+      // A. RENDER THE HERO (Bar Chart)
       const targetRate = snapshot.erp.productionGoal.targetRatePerHour;
       const maxThroughput = Math.max(...adjustedSteps.map(s => s.netThroughputPerHour), targetRate + 5);
       const targetHeightPct = (targetRate / maxThroughput) * 100;
 
-      graphViewContainer.innerHTML = adjustedSteps.map(step => {
-        const heightPct = (step.netThroughputPerHour / maxThroughput) * 100;
-        const isBottleneck = snapshot.line.bottleneckStep && snapshot.line.bottleneckStep.id === step.id;
-        const barColor = isBottleneck ? "rgba(255, 127, 150, 0.85)" : step.state === "Watch" ? "rgba(255, 184, 108, 0.6)" : "rgba(208, 138, 90, 0.85)";
+      if (heroChart) {
+        heroChart.innerHTML = adjustedSteps.map(step => {
+          const heightPct = (step.netThroughputPerHour / maxThroughput) * 100;
+          const isBottleneck = snapshot.line.bottleneckStep && snapshot.line.bottleneckStep.id === step.id;
+          const barColor = isBottleneck ? "rgba(255, 127, 150, 0.85)" : step.state === "Watch" ? "rgba(255, 184, 108, 0.6)" : "rgba(208, 138, 90, 0.85)";
 
-        return `
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative;">
-            <div style="position: absolute; bottom: ${targetHeightPct}%; width: 100%; height: 1px; background: rgba(255,255,255,0.1); z-index: 0; pointer-events: none;"></div>
-            <span style="font-size: 0.75rem; color: #f2ecdf; margin-bottom: 8px; font-weight: 500; z-index: 1;">${formatNumber(step.netThroughputPerHour)}</span>
-            <div style="width: 100%; max-width: 48px; height: ${heightPct}%; background: ${barColor}; border-radius: 6px 6px 0 0; transition: height 0.4s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s ease; z-index: 1;"></div>
-            <span style="font-size: 0.7rem; color: #a9b4c6; text-align: center; margin-top: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${step.name}">${step.name.split(" ")[0]}</span>
-          </div>
+          return `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
+              <span style="font-size: 0.75rem; color: #f2ecdf; margin-bottom: 8px; font-weight: 500;">${formatNumber(step.netThroughputPerHour)}</span>
+              
+              <div style="position: relative; flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center;">
+                <div style="position: absolute; bottom: ${targetHeightPct}%; width: 100%; height: 1px; background: rgba(255,255,255,0.15); z-index: 0; pointer-events: none;"></div>
+                <div style="width: 100%; max-width: 48px; height: ${heightPct}%; background: ${barColor}; border-radius: 6px 6px 0 0; transition: height 0.4s cubic-bezier(0.22, 1, 0.36, 1), background 0.4s ease; z-index: 1;"></div>
+              </div>
+              
+              <span style="font-size: 0.7rem; color: #a9b4c6; text-align: center; margin-top: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;" title="${step.name}">${step.name.split(" ")[0]}</span>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // B. RENDER SIDEKICK 1 (Trend Line using native SVG)
+      const currentOee = adjustedSteps.reduce((sum, s) => sum + s.oee, 0) / adjustedSteps.length;
+      
+      // FIX: We now use a static array for the "past" so the shape never changes, 
+      // and we only dynamically append the current timeframe's OEE at the end!
+      const historyPts = [75.2, 77.8, 74.1, 79.5, 81.2, currentOee];
+      
+      const mapY = (val) => 100 - ((val - 60) / 40) * 100; // Maps 60%-100% OEE to 100px SVG height
+      const pointsStr = historyPts.map((val, i) => `${(i / 5) * 200},${mapY(val)}`).join(" ");
+
+      if (trendChart) {
+        trendChart.innerHTML = `
+          <svg viewBox="-5 -5 210 110" style="width: 100%; height: 100%; overflow: visible;">
+            <line x1="0" y1="${mapY(85)}" x2="200" y2="${mapY(85)}" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="4" />
+            <polyline points="${pointsStr}" fill="none" stroke="#d08a5a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="200" cy="${mapY(currentOee)}" r="4" fill="#07111d" stroke="#d08a5a" stroke-width="2" />
+          </svg>
         `;
-      }).join("");
+      }
 
+      // C. RENDER SIDEKICK 2 (WIP Queue Chart)
+      if (queueChart) {
+        // Find the 4 steps with the highest queue times
+        const topQueues = [...adjustedSteps]
+          .sort((a, b) => b.queueMinutes - a.queueMinutes)
+          .slice(0, 4);
+          
+        const maxQueue = Math.max(...topQueues.map(s => s.queueMinutes), 20);
+
+        queueChart.innerHTML = topQueues.map(step => {
+          const widthPct = (step.queueMinutes / maxQueue) * 100;
+          const isWarning = step.queueMinutes > 15;
+          const barColor = isWarning ? "rgba(255, 184, 108, 0.85)" : "rgba(216, 222, 232, 0.4)";
+          
+          return `
+            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+              <span style="font-size: 0.75rem; color: #a9b4c6; width: 85px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${step.name}">${step.name}</span>
+              <div style="flex: 1; height: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                <div style="width: ${widthPct}%; height: 100%; background: ${barColor}; border-radius: 4px;"></div>
+              </div>
+              <span style="font-size: 0.75rem; color: #f2ecdf; width: 35px; text-align: right;">${Math.round(step.queueMinutes)}m</span>
+            </div>
+          `;
+        }).join("");
+      }
     } else {
       // Draw Table using the adjusted steps
       scheduleTableBody.innerHTML = adjustedSteps.map(step => `

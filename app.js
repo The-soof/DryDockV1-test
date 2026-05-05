@@ -686,7 +686,7 @@ function numberValue(value, fallback = 0) {
       </div>
       <form class="builder-form inline-edit-form" id="stepEditForm">
         <div class="form-grid">
-          <label><span>Cycle time units/min</span><input name="cycleTime" type="number" min="0.1" step="0.1" value="${step.cycleTime}" /></label>
+          <label><span>Cycle time min/unit</span><input name="cycleTime" type="number" min="0.1" step="0.1" value="${step.cycleTime}" /></label>
           <label><span>Machines</span><input name="machines" type="number" min="1" step="1" value="${step.machines}" /></label>
         </div>
         <div class="form-grid">

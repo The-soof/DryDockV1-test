@@ -57,7 +57,7 @@
                   </label>
                   <div class="form-grid">
                     <label>
-                      <span>Cycle time / unit (min)</span>
+                      <span>Cycle time (min/unit)</span>
                       <input id="cycleTime" name="cycleTime" type="number" min="0.1" step="0.1" required />
                     </label>
                     <label>
@@ -152,7 +152,7 @@
                 <form class="builder-form" id="goalForm">
                   <label>
                     <span>Target output rate (units/hr)</span>
-                    <input id="targetRate" name="targetRate" type="number" min="0" step="0.1" placeholder="18" />
+                    <input id="productionGoalInput" name="targetRate" type="number" min="0" step="0.1" placeholder="18" />
                   </label>
                   <div class="form-grid">
                     <label>
@@ -228,21 +228,27 @@
                   <div class="surface-heading">
                     <div>
                       <p class="surface-kicker">Suggested solutions</p>
-                      <h4>Bottleneck and make-vs-buy actions</h4>
+                      <h4>Optimizer Interventions</h4>
                     </div>
                   </div>
-                  <div class="recommendation-list" id="recommendationList"></div>
+                  <div class="recommendation-list" id="solutionsList" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; color: #a9b4c6;">
+                    <em>Click 'Analyze Line' to generate deterministic recovery steps.</em>
+                  </div>
                 </article>
 
-                <article class="surface goal-surface">
+                <article class="surface goal-surface" id="goalResponsePanel" style="border-top: 3px solid transparent; transition: border-color 0.3s ease;">
                   <div class="surface-heading">
                     <div>
                       <p class="surface-kicker">Goal response</p>
-                      <h4>Deterministic optimization suggestions</h4>
+                      <h4 id="goalVerdictText" style="transition: color 0.3s ease;">Awaiting Analysis</h4>
                     </div>
                   </div>
-                  <div class="goal-response" id="goalResponse"></div>
+                  <div class="goal-response" id="goalSubtext" style="padding: 16px 20px; color: #a9b4c6; font-size: 0.9rem;">
+                    Run the optimizer to test line capacity against ERP deadlines.
+                  </div>
                 </article>
+                <div id="goalResponse" style="display: none;"></div>
+                <div id="recommendationList" style="display: none;"></div>
               </section>
             </div>
           </div>

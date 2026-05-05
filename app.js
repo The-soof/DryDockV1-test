@@ -686,7 +686,7 @@ function numberValue(value, fallback = 0) {
       </div>
       <form class="builder-form inline-edit-form" id="stepEditForm">
         <div class="form-grid">
-          <label><span>Cycle time</span><input name="cycleTime" type="number" min="0.1" step="0.1" value="${step.cycleTime}" /></label>
+          <label><span>Cycle time units/min</span><input name="cycleTime" type="number" min="0.1" step="0.1" value="${step.cycleTime}" /></label>
           <label><span>Machines</span><input name="machines" type="number" min="1" step="1" value="${step.machines}" /></label>
         </div>
         <div class="form-grid">
@@ -704,17 +704,69 @@ function numberValue(value, fallback = 0) {
   
   function renderRecommendations(analysis) {
     if (!hasBuilderPage) return;
-    const bottleneckRecommendations = analysis.bottlenecks.flatMap((step) => {
+    
+    const targetContainer = document.getElementById("recommendationList");
+    if (!targetContainer) return;
+
+    let allRecommendations = [];
+
+    // 1. Generate capacity & efficiency recommendations for bottlenecks
+    analysis.bottlenecks.forEach((step) => {
       const rateGap = Math.max(0, analysis.averageOutput - step.metrics.outputPerHour);
       const addedMachines = Math.max(1, Math.ceil(rateGap / (60 / Math.max(0.1, step.cycleTime))));
-      return [
-        `Add ${addedMachines} parallel machine to ${step.name} to close a ${formatNumber(rateGap)} units/hr gap.`,
-        `Reduce ${step.name} cycle time by 10-15% through setup reduction.`,
-        `Cut ${step.name} scrap from ${formatNumber(step.scrapRate)}% to ${formatNumber(Math.max(0, step.scrapRate - 1))}% with material checks.`
-      ];
+
+      // Suggestion A: Add parallel capacity
+      allRecommendations.push({
+          action: `Add ${addedMachines} operator(s) to ${step.name}`,
+          confidence: "High",
+          gain: `+${formatNumber(rateGap * 1.1)} units/hr`
+      });
+
+      // Suggestion B: Setup Reduction (SMED)
+      allRecommendations.push({
+          action: `Implement SMED setup reduction at ${step.name}`,
+          confidence: "Med",
+          gain: `+${formatNumber(step.metrics.outputPerHour * 0.15)} units/hr`
+      });
     });
-    const allRecommendations = [...bottleneckRecommendations].slice(0, 8);
-    recommendationList.innerHTML = allRecommendations.length ? allRecommendations.map((item) => `<article class="recommendation-card">${item}</article>`).join("") : '<p class="empty-state">No constraints flagged yet.</p>';
+
+    // 2. Generate quality recommendations if scrap is bleeding output
+    const highScrapStep = analysis.steps.find(s => numberValue(s.scrapRate) >= 3.0);
+    if (highScrapStep) {
+        const recoveredThroughput = highScrapStep.metrics.rawOutputPerHour * (highScrapStep.scrapRate / 100);
+        allRecommendations.push({
+            action: `Deploy automated QA gate before ${highScrapStep.name}`,
+            confidence: "High",
+            gain: `+${formatNumber(recoveredThroughput)} units/hr`
+        });
+    }
+
+    // 3. Fallback if the line is perfectly balanced
+    if (allRecommendations.length === 0 && analysis.steps.length > 0) {
+        allRecommendations.push({
+            action: `Optimize preventative maintenance schedule`,
+            confidence: "Low",
+            gain: `+${formatNumber(analysis.lineOutput * 0.05)} units/hr`
+        });
+    }
+
+    // 4. Render the sleek UI boxes
+    if (allRecommendations.length > 0) {
+      targetContainer.innerHTML = allRecommendations.slice(0, 4).map(rec => `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <strong style="color: #f2ecdf; display: block; margin-bottom: 4px;">${rec.action}</strong>
+            <span style="color: #a9b4c6; font-size: 0.75rem;">Confidence: ${rec.confidence}</span>
+          </div>
+          <div style="text-align: right;">
+            <strong style="color: #81c995; font-size: 1.1rem;">${rec.gain}</strong>
+            <span style="display: block; color: #a9b4c6; font-size: 0.7rem; text-transform: uppercase;">Est. Gain</span>
+          </div>
+        </div>
+      `).join("");
+    } else {
+      targetContainer.innerHTML = '<p class="empty-state">Add process steps to generate constraints.</p>';
+    }
   }
   
   function updateGoalResponse(goal = {}) {
@@ -765,8 +817,15 @@ function numberValue(value, fallback = 0) {
     });
   
     analyzeLineButton.addEventListener("click", () => {
-      renderBuilder();
-      updateGoalResponse({ targetRate: document.getElementById("targetRate").value, targetQuantity: document.getElementById("targetQuantity").value, deadlineDate: document.getElementById("deadlineDate").value });
+    // Dim the button briefly to feel like it's thinking
+    analyzeLineButton.textContent = "Analyzing...";
+    analyzeLineButton.style.opacity = "0.7";
+    
+      setTimeout(() => {
+      renderBuilder(); // This recalculates math and updates the Solutions panel ONLY
+      analyzeLineButton.textContent = "Analyze Line";
+      analyzeLineButton.style.opacity = "1";
+      }, 400); 
     });
   
     processTimeline.addEventListener("click", (event) => {
@@ -815,6 +874,28 @@ function numberValue(value, fallback = 0) {
       }
     });
   
+  stepDetail.addEventListener("submit", (event) => {
+      event.preventDefault(); // Stop the page from reloading
+      
+      const form = event.target;
+      if (form.id === "stepEditForm") {
+        const step = processSteps.find((s) => s.id === activeAnalysis.id);
+        if (step) {
+          const formData = new FormData(form);
+          
+          // Update the step properties safely using global utilities
+          step.cycleTime = numberValue(formData.get("cycleTime"), step.cycleTime);
+          step.machines = numberValue(formData.get("machines"), step.machines);
+          step.shiftHours = numberValue(formData.get("shiftHours"), step.shiftHours);
+          step.scrapRate = numberValue(formData.get("scrapRate"), step.scrapRate);
+          step.materialSource = formData.get("materialSource");
+          
+          // Re-render the builder panel with the updated data
+          renderBuilder();
+        }
+      }
+    });
+
     const uploadCsvBtn = document.getElementById('uploadCsvBtn');
     const csvFileInput = document.getElementById('csvFileInput');
   

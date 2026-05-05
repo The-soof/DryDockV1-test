@@ -354,7 +354,7 @@ h1 {
 }
 
 .planner {
-  padding: 36px 0;
+  padding: 0 0 36px;
 }
 
 .planner-heading {
@@ -631,7 +631,7 @@ td.status-risk {
 }
 
 .subpage-hero {
-  padding: 10px 0 24px;
+  padding: 10px 0 0;
 }
 
 .subpage-intro {

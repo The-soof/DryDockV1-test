@@ -177,7 +177,6 @@ function numberValue(value, fallback = 0) {
         focusViews: [
           { id: "steps", title: "Step analysis", summary: "Raw per-step cycle time and throughput data." },
           { id: "graph", title: "Visual analysis", summary: "Visual telemetry for throughput and bottlenecks." },
-          { id: "constraints", title: "ERP constraints", summary: "Materials, lead times, and pressure." }
         ],
         constraints: rawSnapshot.erp.components.map((component) => {
           const isRisky = component.leadTimeDays > 3 || component.onHand <= component.reserved;
@@ -248,7 +247,7 @@ function numberValue(value, fallback = 0) {
     if (!timeframeFilters) return;
     timeframeFilters.innerHTML = timeframes.map(tf => `<button class="chip ${tf.id === activeTimeframe.id ? 'active' : ''}" data-timeframe="${tf.id}">${tf.label}</button>`).join("");
     if (timeframeDetail) timeframeDetail.textContent = activeTimeframe.desc;
-    if (solverMode) solverMode.textContent = `Mock MES/ERP feed | ${activeTimeframe.refresh}`;
+    if (solverMode) solverMode.textContent = `MES/ERP feed | ${activeTimeframe.refresh}`;
   }
   
   function renderLiveViews(snapshot) {
@@ -291,9 +290,9 @@ function numberValue(value, fallback = 0) {
     }
   
     metricEls.onTime.textContent = `${formatNumber(oee)}%`;
-    metricEls.onTimeDelta.textContent = `Target ${formatNumber(targetThr, 1)}/hr`;
-    metricEls.utilization.textContent = `${formatNumber(thr)}/hr`;
-    metricEls.utilizationDelta.textContent = `Attainment ${formatNumber((thr/targetThr)*100)}%`;
+    metricEls.onTimeDelta.textContent = `Target ${formatNumber(targetOee, 0)}%`;
+    metricEls.utilization.textContent = `${formatNumber(thr)} units/hr`;
+    metricEls.utilizationDelta.textContent = `Target ${formatNumber(targetThr, 1)} units/hr | Attainment ${formatNumber((thr/targetThr)*100)}%`;
     metricEls.reschedule.textContent = `${formatNumber(scr)}%`;
     metricEls.rescheduleDelta.textContent = snapshot.line.highestScrapStep ? `Highest scrap: ${snapshot.line.highestScrapStep.name}` : "No scrap leader";
     metricEls.risk.textContent = snapshot.line.healthLabel;
@@ -430,11 +429,11 @@ function numberValue(value, fallback = 0) {
       return;
     }
     if (livePlannerState.activeViewId === "graph") {
-      narrative.textContent = `Visualizing live throughput across all steps. The red bar indicates the active pacing constraint (${bottleneck}) against the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)}/hr target line.`;
+      narrative.textContent = `Visualizing live throughput across all steps. The red bar indicates the active pacing constraint (${bottleneck}) against the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)} units/hr target line.`;
       return;
     }
     if (livePlannerState.activeViewId === "constraints") {
-      narrative.textContent = `The ERP layer is constraining the line through active inventory. Keep an eye on ${bottleneck} while preserving the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)}/hr target.`;
+      narrative.textContent = `The ERP layer is constraining the line through active inventory. Keep an eye on ${bottleneck} while preserving the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)} units/hr target.`;
       return;
     }
   }
@@ -578,7 +577,7 @@ function numberValue(value, fallback = 0) {
     if (!hasBuilderPage) return;
     const downtime = clamp((1 - analysis.averageAvailability) * 100, 0, 100);
     builderMetricEls.oee.textContent = `${formatNumber(analysis.oee)}%`;
-    builderMetricEls.throughput.textContent = `${formatNumber(analysis.lineOutput)}/hr`;
+    builderMetricEls.throughput.textContent = `${formatNumber(analysis.lineOutput)} units/hr`;
     builderMetricEls.downtime.textContent = `${formatNumber(downtime)}%`;
     builderMetricEls.scrap.textContent = `${formatNumber(analysis.averageScrap)}%`;
     builderMetricEls.standardActual.textContent = `${formatNumber(analysis.standardOutput, 0)} / ${formatNumber(analysis.actualOutput, 0)}`;
@@ -615,7 +614,7 @@ function numberValue(value, fallback = 0) {
     stepDetail.innerHTML = `
       <div class="detail-grid">
         <div><span>Efficiency score</span><strong>${step.metrics.efficiencyScore}%</strong></div>
-        <div><span>Predicted output</span><strong>${formatNumber(step.metrics.outputPerHour)}/hr</strong></div>
+        <div><span>Predicted output</span><strong>${formatNumber(step.metrics.outputPerHour)} units/hr</strong></div>
         <div><span>Utilization</span><strong>${formatNumber(step.metrics.utilizationRate * 100)}%</strong></div>
         <div><span>Quality yield</span><strong>${formatNumber(step.metrics.quality * 100)}%</strong></div>
       </div>

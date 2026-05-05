@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
   </head>
   <body>
     <div class="site-shell">
@@ -41,27 +41,18 @@
         </nav>
 
         <section class="subpage-intro">
-          <p class="section-kicker">Scenario simulator</p>
-          <h2>Watch live MES and ERP data flow into the line view, then review optimizer advice in real time.</h2>
+          <p class="section-kicker">Operations Dashboard</p>
+          <h2>Live MES/ERP feed and constraint tracking.</h2>
           <p class="hero-text">
-            This workspace merges live line status, per-step health, and production planning
-            targets so planners can see bottlenecks, schedule pressure, and recovery actions
-            without waiting for a manual report.
+            Monitor machine-level throughput, identify active bottlenecks, and review deterministic recovery steps for the current shift.
           </p>
-          <div class="hero-actions">
-            <a href="./line-builder.html" class="button button-secondary">Go to line builder</a>
-          </div>
         </section>
       </header>
 
       <main>
         <section class="planner page-surface" id="planner">
           <div class="section-heading planner-heading">
-            <div>
-              <p class="section-kicker">Live operations dashboard</p>
-              <h3>MES and ERP snapshots with deterministic optimizer guidance</h3>
-            </div>
-            <div class="planner-badge">
+            <div></div> <div class="planner-badge">
               <span class="live-dot"></span>
               <span id="scenarioName">Axiom Composite Line</span>
             </div>
@@ -94,7 +85,7 @@
                 <article class="metric-card">
                   <span>Line OEE</span>
                   <strong id="metricOnTime">82%</strong>
-                  <p id="metricOnTimeDelta">Target 18.0/hr</p>
+                  <p id="metricOnTimeDelta">Target 85%</p>
                 </article>
                 <article class="metric-card">
                   <span>Throughput</span>

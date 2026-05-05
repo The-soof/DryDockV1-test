@@ -17,40 +17,33 @@
       <header class="subpage-hero">
         <nav class="topbar">
           <div class="brand-lockup">
-            <div class="brand-mark">DD</div>
+            <div class="brand-mark" aria-hidden="true" style="padding: 4px;">
+              <img src="axiom_symbol.png" alt="Axiom logo" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: lighten;" />
+            </div>
             <div>
               <p class="eyebrow">Industrial Decision Intelligence</p>
-              <h1>Interactive Line Builder</h1>
+              <h1>Axiom</h1>
             </div>
           </div>
           <div class="topbar-copy nav-links">
             <a href="./index.html">Home</a>
-            <a href="./planner.html">Planning Console</a>
+            <a href="./planner.html">Operations Dashboard</a>
           </div>
         </nav>
 
         <section class="subpage-intro">
           <p class="section-kicker">Process modeling</p>
-          <h2>Build the line, test the constraints, and see what it takes to hit the goal.</h2>
+          <h2>CSV compatable line builder with quantum optimized suggestions.</h2>
           <p class="hero-text">
-            This workspace is tuned for process design and improvement. Add steps,
-            compare sourcing approaches, measure output, and pressure-test the plan
-            before it reaches the scheduling layer.
+            Build your manufacturing line, test constraints, and leverage an LLM/quantum-powered system to optimize the line.
           </p>
-          <div class="hero-actions">
-            <a href="./planner.html" class="button button-secondary">Go to planning console</a>
-          </div>
         </section>
       </header>
 
       <main>
         <section class="process-builder page-surface" id="process-builder">
           <div class="section-heading builder-heading">
-            <div>
-              <p class="section-kicker">Interactive line builder</p>
-              <h3>Model process steps, sourcing, capacity, and production goals.</h3>
-            </div>
-            <button class="button button-primary" id="analyzeLineButton" type="button">Analyze Line</button>
+            <div></div> <button class="button button-primary" id="analyzeLineButton" type="button">Analyze Line</button>
           </div>
 
           <div class="builder-layout">

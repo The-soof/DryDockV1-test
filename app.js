@@ -221,7 +221,9 @@ function numberValue(value, fallback = 0) {
   const heroChart = document.getElementById("heroChart");       // NEW
   const trendChart = document.getElementById("trendChart");     // NEW
   const queueChart = document.getElementById("queueChart"); // NEW
-  
+  const viewKicker = document.getElementById("viewKicker");
+  const viewDescription = document.getElementById("viewDescription");
+
   const metricEls = {
     onTime: document.getElementById("metricOnTime"), onTimeDelta: document.getElementById("metricOnTimeDelta"),
     utilization: document.getElementById("metricUtilization"), utilizationDelta: document.getElementById("metricUtilizationDelta"),
@@ -229,7 +231,7 @@ function numberValue(value, fallback = 0) {
     risk: document.getElementById("metricRisk"), riskDelta: document.getElementById("metricRiskDelta")
   };
   
-  const hasPlannerPage = Boolean(scenarioList && timeframeFilters && timeframeDetail && scenarioName && solverMode && narrative && scheduleTableBody && resourceList && tableViewContainer && graphViewContainer && heroChart && trendChart && queueChart);
+  const hasPlannerPage = Boolean(scenarioList && timeframeFilters && timeframeDetail && scenarioName && solverMode && narrative && scheduleTableBody && resourceList && tableViewContainer && graphViewContainer && heroChart && trendChart && queueChart && viewKicker && viewDescription);
   
   const livePlannerState = { activeViewId: "steps", snapshot: null, unsubscribe: null };
   
@@ -295,8 +297,20 @@ function numberValue(value, fallback = 0) {
     metricEls.utilizationDelta.textContent = `Target ${formatNumber(targetThr, 1)} units/hr | Attainment ${formatNumber((thr/targetThr)*100)}%`;
     metricEls.reschedule.textContent = `${formatNumber(scr)}%`;
     metricEls.rescheduleDelta.textContent = snapshot.line.highestScrapStep ? `Highest scrap: ${snapshot.line.highestScrapStep.name}` : "No scrap leader";
+    // Define our status colors
+    const stateColor = snapshot.line.healthLabel === "Running" ? "#81c995" : snapshot.line.healthLabel === "Watch" ? "#fde293" : "#ff8a80";
+    
+    // Apply to the KPI card
     metricEls.risk.textContent = snapshot.line.healthLabel;
+    metricEls.risk.style.color = stateColor;
     metricEls.riskDelta.textContent = snapshot.line.bottleneckStep ? `Bottleneck: ${snapshot.line.bottleneckStep.name}` : "All steps balanced";
+
+    // Apply to the top Live Dot (if it exists on the page)
+    const liveDot = document.querySelector(".live-dot");
+    if (liveDot) {
+      liveDot.style.background = stateColor;
+      liveDot.style.boxShadow = `0 0 0 6px ${stateColor}22`; // Adds the faint glowing halo
+    }
   }
   
   function renderLiveSteps(snapshot) {
@@ -317,10 +331,17 @@ function numberValue(value, fallback = 0) {
       return { ...step, netThroughputPerHour: stepThr, scrapRatePercent: stepScrap, oee: stepOee };
     });
 
-    // --- 2. TOGGLE VIEWS ---
+    // --- 2. TOGGLE VIEWS & TITLES ---
     const isGraphView = livePlannerState.activeViewId === "graph";
     if (tableViewContainer) tableViewContainer.style.display = isGraphView ? "none" : "block";
     if (graphViewContainer) graphViewContainer.style.display = isGraphView ? "flex" : "none";
+
+    // Dynamically update the panel title and description
+    const isLive = activeTimeframe.id === "Live";
+    const prefix = isLive ? "Live " : "";
+    
+    if (viewKicker) viewKicker.textContent = `${prefix}${isGraphView ? "visual analysis" : "step analysis"}`;
+    if (viewDescription) viewDescription.textContent = isGraphView ? "Graphical MES analysis" : "MES steps dashboard";
 
     // --- 3. RENDER CONTENT ---
     // --- 3. RENDER CONTENT ---
@@ -372,19 +393,22 @@ function numberValue(value, fallback = 0) {
         `;
       }
 
-      // C. RENDER SIDEKICK 2 (WIP Queue Chart)
+      // C. RENDER SIDEKICK 2 (Scrap Rate Chart)
       if (queueChart) {
-        // Find the 4 steps with the highest queue times
-        const topQueues = [...adjustedSteps]
-          .sort((a, b) => b.queueMinutes - a.queueMinutes)
+        // Dynamically update the header text above the chart
+        if (queueChart.previousElementSibling) queueChart.previousElementSibling.textContent = "Highest Scrap Rates";
+
+        // Find the 4 steps with the highest scrap rates
+        const topScrap = [...adjustedSteps]
+          .sort((a, b) => b.scrapRatePercent - a.scrapRatePercent)
           .slice(0, 4);
           
-        const maxQueue = Math.max(...topQueues.map(s => s.queueMinutes), 20);
+        const maxScrap = Math.max(...topScrap.map(s => s.scrapRatePercent), 5); // Base scale of 5%
 
-        queueChart.innerHTML = topQueues.map(step => {
-          const widthPct = (step.queueMinutes / maxQueue) * 100;
-          const isWarning = step.queueMinutes > 15;
-          const barColor = isWarning ? "rgba(255, 184, 108, 0.85)" : "rgba(216, 222, 232, 0.4)";
+        queueChart.innerHTML = topScrap.map(step => {
+          const widthPct = (step.scrapRatePercent / maxScrap) * 100;
+          const isWarning = step.scrapRatePercent > 3.5;
+          const barColor = isWarning ? "rgba(255, 127, 150, 0.85)" : "rgba(216, 222, 232, 0.4)";
           
           return `
             <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
@@ -392,19 +416,22 @@ function numberValue(value, fallback = 0) {
               <div style="flex: 1; height: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
                 <div style="width: ${widthPct}%; height: 100%; background: ${barColor}; border-radius: 4px;"></div>
               </div>
-              <span style="font-size: 0.75rem; color: #f2ecdf; width: 35px; text-align: right;">${Math.round(step.queueMinutes)}m</span>
+              <span style="font-size: 0.75rem; color: #f2ecdf; width: 35px; text-align: right;">${formatNumber(step.scrapRatePercent)}%</span>
             </div>
           `;
         }).join("");
       }
     } else {
-      // Draw Table using the adjusted steps
-      scheduleTableBody.innerHTML = adjustedSteps.map(step => `
+      // Draw Table using the adjusted steps with inline colors
+      scheduleTableBody.innerHTML = adjustedSteps.map(step => {
+        const rowColor = step.state === "Running" ? "#81c995" : step.state === "Watch" ? "#fde293" : "#ff8a80";
+        return `
         <tr>
           <td>${step.name}</td><td>${step.station}</td><td>${formatNumber(step.cycleTimeMin)} min</td>
-          <td>${formatNumber(step.netThroughputPerHour)} / hr</td><td>${formatNumber(step.scrapRatePercent)}%</td>
-          <td>${formatNumber(step.oee)}%</td><td class="${statusClass(step.state === "Running" ? "On track" : step.state === "Watch" ? "Watch" : "Risk")}">${step.state}</td>
-        </tr>`).join("");
+          <td>${formatNumber(step.netThroughputPerHour)} units/hr</td><td>${formatNumber(step.scrapRatePercent)}%</td>
+          <td>${formatNumber(step.oee)}%</td><td style="color: ${rowColor}; font-weight: 500;">${step.state}</td>
+        </tr>`;
+      }).join("");
     }
   }
   
@@ -420,21 +447,60 @@ function numberValue(value, fallback = 0) {
   function renderLiveNarrative(snapshot) {
     if (!hasPlannerPage || !snapshot) return;
     const bottleneck = snapshot.line.bottleneckStep ? snapshot.line.bottleneckStep.name : "no single step";
-    const ageText = formatAge(snapshot.updatedAt);
-  
     scenarioName.textContent = `${snapshot.line.name} | ${snapshot.line.shift}`;
     
+    // Calculate precise time differences for Day and Shift
+    const now = new Date();
+    
+    // Day calculation (hours since midnight)
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    const dayHours = ((now - midnight) / 3600000).toFixed(1);
+
+    // Shift calculation (6am, 2pm, 10pm boundaries)
+    const currentHour = now.getHours();
+    let shiftStartHour = 6;
+    if (currentHour >= 6 && currentHour < 14) shiftStartHour = 6;
+    else if (currentHour >= 14 && currentHour < 22) shiftStartHour = 14;
+    else shiftStartHour = 22;
+
+    const shiftStart = new Date(now);
+    shiftStart.setHours(shiftStartHour, 0, 0, 0);
+    // Handle the 10 PM to 6 AM shift crossing midnight
+    if (shiftStartHour === 22 && currentHour < 6) shiftStart.setDate(shiftStart.getDate() - 1);
+    const shiftHours = ((now - shiftStart) / 3600000).toFixed(1);
+
+    // Generate the unique timeframe text
+    let ageText = "";
+    if (activeTimeframe.id === "Shift") ageText = `Averaging current shift (${shiftHours} hours)`;
+    else if (activeTimeframe.id === "Day") ageText = `Averaging the past ${dayHours} hours`;
+    else if (activeTimeframe.id === "Week") ageText = `Averaging last week`;
+    else if (activeTimeframe.id === "Month") ageText = `Averaging last month`;
+
+    // Determine the base text depending on the view
+    let baseText = "";
     if (livePlannerState.activeViewId === "steps") {
-      narrative.textContent = `The MES feed shows ${snapshot.steps.length} live steps. ${snapshot.line.bottleneckStep ? `${snapshot.line.bottleneckStep.name} is the bottleneck.` : "The line is currently balanced."} The snapshot is ${ageText} old.`;
-      return;
+      baseText = `The MES feed shows ${snapshot.steps.length} steps. ${snapshot.line.bottleneckStep ? `${snapshot.line.bottleneckStep.name} is the bottleneck.` : "The line is currently balanced."}`;
+    } else if (livePlannerState.activeViewId === "graph") {
+      baseText = `Visualizing throughput across all steps. The red bar indicates the active pacing constraint (${bottleneck}).`;
+    } else {
+      baseText = `The ERP layer is constraining the line through active inventory. Keep an eye on ${bottleneck}.`;
     }
-    if (livePlannerState.activeViewId === "graph") {
-      narrative.textContent = `Visualizing live throughput across all steps. The red bar indicates the active pacing constraint (${bottleneck}) against the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)} units/hr target line.`;
-      return;
-    }
-    if (livePlannerState.activeViewId === "constraints") {
-      narrative.textContent = `The ERP layer is constraining the line through active inventory. Keep an eye on ${bottleneck} while preserving the ${formatNumber(snapshot.erp.productionGoal.targetRatePerHour, 1)} units/hr target.`;
-      return;
+
+    // Clear any existing ticking timer
+    if (window.liveTimer) clearInterval(window.liveTimer);
+
+    // Apply text or live ticking clock
+    if (activeTimeframe.id === "Live") {
+      narrative.innerHTML = `${baseText} <span id="liveTicker" style="color: #81c995;">Live feed updated 1s ago.</span>`;
+      let sec = 1;
+      window.liveTimer = setInterval(() => {
+          sec++;
+          const tickerEl = document.getElementById("liveTicker");
+          if (tickerEl) tickerEl.textContent = `Live feed updated ${sec}s ago.`;
+      }, 1000);
+    } else {
+      narrative.textContent = `${baseText} ${ageText}.`;
     }
   }
   

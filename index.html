@@ -1,161 +1,489 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Axiom V1</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="site-shell">
-      <header class="hero">
-        <nav class="topbar">
-          <div class="brand-lockup">
-            <div class="brand-mark" aria-hidden="true">
-              <svg class="brand-logo" viewBox="0 0 64 64" focusable="false" role="presentation">
-                <path
-                  d="M32 8C35.2 8 38.2 9.7 40 12.6L55.7 39.2C58.2 43.4 58.2 48.7 55.8 52.9C53.4 57 48.9 59.6 44 59.6H20C15.1 59.6 10.6 57 8.2 52.9C5.8 48.7 5.8 43.4 8.3 39.2L24 12.6C25.8 9.7 28.8 8 32 8Z"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="4.4"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <p class="eyebrow">Industrial Decision Intelligence</p>
-              <h1>Axiom</h1>
-            </div>
-          </div>
-          <div class="topbar-copy nav-links">
-            <a href="./planner.html">Live Operations Dashboard</a>
-            <a href="./line-builder.html">Interactive Line Builder</a>
-          </div>
-        </nav>
+<head>
+  <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Axiom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
 
-        <section class="hero-grid">
-          <div class="hero-copy">
-            <p class="section-kicker">Live MES and ERP manufacturing intelligence</p>
-            <h2>Monitor the line in real time, then optimize it with clear deterministic advice.</h2>
-            <p class="hero-text">
-              Axiom now separates live operations monitoring from line design so each
-              surface stays focused. Use the dashboard for MES and ERP updates and the
-              line builder for process modeling, sourcing, and goal analysis.
-            </p>
-            <div class="hero-actions">
-              <a href="./planner.html" class="button button-primary">Open live dashboard</a>
-              <a href="./line-builder.html" class="button button-secondary">Open line builder</a>
-            </div>
-          </div>
+    /* ============================================================
+      CSS VARIABLES — match your existing styles.css exactly
+    ============================================================ */
+    :root {
+      --bg:     #07111d;
+      --panel:  rgba(11,20,38,0.9);
+      --line:   rgba(208,138,90,0.2);
+      --text:   #f2ecdf;
+      --muted:  #a9b4c6;
+      --accent: #d08a5a;
+    }
 
-          <aside class="hero-panel">
-            <p class="panel-label">Platform snapshot</p>
-            <div class="panel-stack">
-              <div class="panel-card">
-                <span>Live operations dashboard</span>
-                <p>Watch MES step data, ERP targets, and live line health in a refreshable view.</p>
-              </div>
-              <div class="panel-card">
-                <span>Interactive line builder</span>
-                <p>Design process steps, map sourcing dependencies, score efficiency, and test output goals.</p>
-              </div>
-              <div class="panel-card">
-                <span>Phase 1 architecture</span>
-                <p>Use mocked adapters and polling now, with a backend MES/ERP bridge ready for later.</p>
-              </div>
-            </div>
-          </aside>
-        </section>
-      </header>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      <main>
-        <section class="feature-directory">
-          <div class="section-heading">
-            <p class="section-kicker">Workspace directory</p>
-            <h3>Each feature now has its own page with focused controls and outputs.</h3>
-          </div>
-          <div class="feature-grid">
-            <article class="feature-card">
-              <p class="surface-kicker">Live Operations Dashboard</p>
-              <h4>Real-time MES and ERP views for fast operational decisions</h4>
-              <p>
-                Review live step throughput, compare bottleneck pressure, inspect
-                recommendations, and explain why the line moved the way it did.
-              </p>
-              <div class="feature-list">
-                <span>Live line status and KPI cards</span>
-                <span>Per-step throughput and OEE table</span>
-                <span>Optimizer advice and ERP constraints</span>
-                <span>Polling feed ready for future WebSockets</span>
-              </div>
-              <div class="feature-actions">
-                <a href="./planner.html" class="button button-primary">Go to live dashboard</a>
-              </div>
-            </article>
+    body {
+      background:
+        radial-gradient(circle at 15% 0%, rgba(208,138,90,0.13) 0%, transparent 30%),
+        radial-gradient(circle at 85% 8%,  rgba(216,222,232,0.07) 0%, transparent 24%),
+        linear-gradient(180deg, #07111d 0%, #050a14 100%);
+      color: var(--text);
+      font-family: "IBM Plex Sans", sans-serif;
+      overflow-x: hidden;
+    }
 
-            <article class="feature-card">
-              <p class="surface-kicker">Interactive Line Builder</p>
-              <h4>Model the line itself before you commit to a production target</h4>
-              <p>
-                Add or remove process steps, tune capacity and scrap assumptions, compare
-                sourcing tradeoffs, and generate line-level recommendations and goal checks.
-              </p>
-              <div class="feature-list">
-                <span>Process and component inputs</span>
-                <span>Efficiency, OEE, throughput, and downtime KPIs</span>
-                <span>Timeline-based step and dependency analysis</span>
-                <span>Goal response and optimization guidance</span>
-              </div>
-              <div class="feature-actions">
-                <a href="./line-builder.html" class="button button-primary">Go to line builder</a>
-              </div>
-            </article>
-          </div>
-        </section>
+    a { color: inherit; text-decoration: none; }
 
-        <section class="thesis" id="why-now">
-          <div class="section-heading">
-            <p class="section-kicker">Why this wedge works</p>
-            <h3>Lead with throughput and resilience. Keep advanced solvers behind the scenes for later.</h3>
-          </div>
-          <div class="thesis-grid">
-            <article class="thesis-card">
-              <span>1</span>
-              <h4>Start where planning pain is highest</h4>
-              <p>
-                Job-shop scheduling, machine assignment, shift constraints, and rework risk
-                create combinatorial complexity that planners still manage with spreadsheets
-                and tribal knowledge.
-              </p>
-            </article>
-            <article class="thesis-card">
-              <span>2</span>
-              <h4>Deliver value before deep integrations</h4>
-              <p>
-                CSV and manual uploads make pilots fast. Customers can model one constrained
-                line before committing to ERP or MES integrations.
-              </p>
-            </article>
-            <article class="thesis-card">
-              <span>3</span>
-              <h4>Use deterministic optimization first</h4>
-              <p>
-                Start with explainable rules, bottleneck ranking, and clear constraint
-                handling. Future quantum or LLM assistance can be layered on later.
-              </p>
-            </article>
-          </div>
-        </section>
-      </main>
+    /* ============================================================
+      NAV — fixed top bar, frosted glass, text-only brand name
+    ============================================================ */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 200;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 44px;
+      background: rgba(7,17,29,0.6);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(208,138,90,0.07);
+    }
+
+    .nav-brand {
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+      font-size: 1.08rem;
+      letter-spacing: 0.07em;
+      color: var(--text);
+    }
+
+    .nav-links { display: flex; gap: 8px; }
+
+    .nav-links a {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 999px;
+      padding: 8px 16px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      transition: border-color 160ms, background 160ms, color 160ms, transform 160ms;
+    }
+    .nav-links a:hover {
+      border-color: rgba(208,138,90,0.45);
+      background: rgba(208,138,90,0.08);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    /* ============================================================
+      SCROLL DRIVER — 220vh tall container that creates scroll
+      distance. The sticky .hero inside it stays pinned while
+      you scroll, and JS maps progress → rotation angle.
+    ============================================================ */
+    .driver {
+      height: 220vh;
+      position: relative;
+    }
+
+    /* ============================================================
+      STICKY HERO — full-screen, stays on screen while scrolling
+      through .driver. Centers the logo + wordmark stack.
+    ============================================================ */
+    .hero {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Soft copper ambient glow radiating from the center */
+    .hero-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(208,138,90,0.10), transparent 68%);
+      pointer-events: none;
+    }
+
+    /* Vertical stack: logo (spins) + wordmark (static) */
+    .hero-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================================
+      LOGO SPINNER — the ONLY element JS applies rotate() to.
+      The wordmark is a sibling outside this div and never moves.
+      will-change: transform → hints browser to GPU-accelerate it.
+    ============================================================ */
+    #logo-spinner {
+      will-change: transform;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ============================================================
+      THE ACTUAL LOGO IMAGE
+      This is axiom_symbol.png — your real uploaded logo file.
+
+      The PNG has a black background. We use:
+        mix-blend-mode: lighten
+      which makes any pixel darker than the destination disappear.
+      Since the site background is very dark navy, the black areas
+      of the PNG become invisible, leaving only the copper mark.
+
+      If you export a version with a transparent background (.png
+      with alpha channel or .svg), remove mix-blend-mode entirely.
+    ============================================================ */
+    #logo-img {
+      display: block;
+      width: clamp(220px, 28vw, 360px);
+      height: clamp(220px, 28vw, 360px);
+      object-fit: contain;
+      mix-blend-mode: lighten;   /* hides the black PNG background */
+      /* base glow — JS intensifies this on scroll */
+      filter: drop-shadow(0 0 30px rgba(208,138,90,0.30));
+    }
+
+    /* ============================================================
+      WORDMARK — "AXIOM" text. Sibling of #logo-spinner.
+      JS never touches this element. It never rotates.
+    ============================================================ */
+    .wordmark {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      text-transform: uppercase;
+      color: var(--text);
+      animation: fadeUp 0.9s cubic-bezier(0.22,1,0.36,1) both;
+      animation-delay: 0.15s;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+      TAGLINE — hidden at opacity:0. JS fades it in after ~60%
+      of scroll progress through the driver (once spin is done).
+    ============================================================ */
+    .tagline {
+      position: absolute;
+      bottom: 14vh;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .tagline p {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1rem, 2vw, 1.55rem);
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================================
+      SCROLL CUE — "Scroll" + animated line. Fades out on first scroll.
+    ============================================================ */
+    .scroll-cue {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .scroll-cue span {
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .cue-line {
+      width: 1px;
+      height: 38px;
+      background: linear-gradient(to bottom, rgba(208,138,90,0.8), transparent);
+      animation: cuePulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes cuePulse {
+      0%,100% { opacity:0.35; transform:scaleY(0.9); }
+      50%      { opacity:1;    transform:scaleY(1.1); }
+    }
+
+    /* ============================================================
+      BELOW-FOLD CONTENT — normal document flow, scrolls up after
+      the driver ends. Two-column: description + cards.
+    ============================================================ */
+    .content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 96px 44px 80px;
+    }
+
+    .about {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      padding: 72px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .kicker {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .about h2 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.7rem);
+      font-weight: 600;
+      line-height: 1.1;
+      margin-bottom: 18px;
+    }
+
+    .about p { color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
+
+    .cards { display: grid; gap: 14px; }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      border-radius: 20px;
+      padding: 20px 22px;
+    }
+
+    .card-label {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--accent);
+      margin-bottom: 7px;
+    }
+
+    .card p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+
+    /* ============================================================
+      FOOTER CTA
+    ============================================================ */
+    .cta-wrap {
+      text-align: center;
+      padding: 56px 44px 80px;
+      border-top: 1px solid var(--line);
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #d08a5a 0%, #d8dee8 100%);
+      color: #07111d;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 700;
+      font-size: 0.93rem;
+      letter-spacing: 0.03em;
+      padding: 13px 26px;
+      border-radius: 999px;
+      transition: transform 180ms, box-shadow 180ms;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 36px rgba(208,138,90,0.28);
+    }
+
+    .cta-wrap > p { color: var(--muted); font-size: 0.88rem; margin-top: 20px; }
+
+    @media (max-width: 780px) {
+      nav       { padding: 14px 20px; }
+      .about    { grid-template-columns: 1fr; gap: 36px; }
+      .content  { padding: 64px 24px 60px; }
+      .cta-wrap { padding: 44px 24px 64px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- NAV: text-only brand, no icon -->
+  <nav>
+    <span class="nav-brand">Axiom</span>
+    <div class="nav-links">
+      <a href="./planner.html">Live Dashboard</a>
+      <a href="./line-builder.html">Line Builder</a>
     </div>
+  </nav>
 
-    <script src="./app.js"></script>
-  </body>
+  <!-- SCROLL DRIVER: 220vh tall. Hero sticks inside it. -->
+  <div class="driver" id="driver">
+    <div class="hero">
+      <div class="hero-glow"></div>
+
+      <div class="hero-stack">
+
+        <!-- JS rotates ONLY this div -->
+        <div id="logo-spinner">
+          <!--
+            YOUR ACTUAL LOGO FILE: axiom_symbol.png
+            Placed in the same folder as this HTML file.
+            mix-blend-mode: lighten hides the black background.
+            If you have a transparent-background version, remove that CSS line.
+          -->
+          <img id="logo-img" src="axiom_symbol.png" alt="Axiom symbol"/>
+        </div>
+
+        <!-- WORDMARK: outside spinner, never rotates -->
+        <div class="wordmark">Axiom</div>
+
+      </div>
+
+      <!-- Tagline: fades in after spin completes -->
+      <div class="tagline" id="tagline">
+        <p>Track Your Chain. Find Gaps. Iterate.</p>
+      </div>
+
+      <!-- Scroll prompt -->
+      <div class="scroll-cue" id="scrollCue">
+        <span>Scroll</span>
+        <div class="cue-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BELOW-FOLD: about section + cards -->
+  <div class="content">
+    <div class="about">
+      <div>
+        <p class="kicker">What We Do</p>
+        <h2>Intelligent scheduling for complex manufacturing</h2>
+        <p>Axiom is a production planning platform built for manufacturers who can't afford surprises. It maps your full process chain, surfaces bottlenecks before they become missed deadlines, and helps you reschedule in minutes — not hours.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <p class="card-label">Chain Visibility</p>
+          <p>See every step in your production process, with live utilization data and dependency tracking across all cells and resources.</p>
+        </div>
+        <div class="card">
+          <p class="card-label">Gap Detection</p>
+          <p>Axiom identifies slack, conflicts, and constraint clusters before they cascade — so you can act on a warning, not a miss.</p>
+        </div>
+        <div class="card">
+          <p class="card-label">Rapid Iteration</p>
+          <p>Model rush orders, machine outages, and priority shifts in real time. Compare scenarios and commit to a plan with confidence.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-wrap">
+    <a class="cta-btn" href="./planner.html">
+      Open Live Dashboard
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- ============================================================
+    JAVASCRIPT — SCROLL-DRIVEN ROTATION
+
+    1. Scroll event fires → calculate raw progress (0–1) through driver
+    2. Map progress through ROTATION_WINDOW → eased 0–360°
+    3. requestAnimationFrame lerp loop smoothly moves logo toward target
+    4. Only #logo-spinner gets the rotate() transform
+    5. Tagline + glow also update based on progress
+  ============================================================ -->
+  <script>
+    const driver    = document.getElementById('driver');
+    const spinner   = document.getElementById('logo-spinner'); // ONLY this rotates
+    const logoImg   = document.getElementById('logo-img');
+    const tagline   = document.getElementById('tagline');
+    const scrollCue = document.getElementById('scrollCue');
+
+    // Fraction of the driver scroll range over which rotation completes.
+    // 0.55 × 220vh ≈ 121vh of scrolling for a full 360°.
+    // Lower this number to make the spin faster.
+    const ROTATION_WINDOW = 0.55;
+
+    function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+
+    // Smooth ease-in-out curve: slow→fast→slow
+    function ease(t) {
+      return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+    }
+
+    let raf        = null;
+    let currentDeg = 0;   // current visual rotation
+    let targetDeg  = 0;   // target from scroll position
+
+    // Lerp animation loop — runs until current ≈ target
+    function tick() {
+      const diff = targetDeg - currentDeg;
+      if (Math.abs(diff) > 0.05) {
+        currentDeg += diff * 0.12;  // 12% closer per frame = buttery smooth
+        spinner.style.transform = `rotate(${currentDeg}deg)`;
+        raf = requestAnimationFrame(tick);
+      } else {
+        currentDeg = targetDeg;
+        spinner.style.transform = `rotate(${currentDeg}deg)`;
+        raf = null;
+      }
+    }
+
+    window.addEventListener('scroll', () => {
+      const rect      = driver.getBoundingClientRect();
+      const scrolled  = -rect.top;
+      const scrollable= driver.offsetHeight - window.innerHeight;
+      const raw       = clamp(scrolled / scrollable, 0, 1); // 0→1 through driver
+
+      // Eased rotation: completes within ROTATION_WINDOW fraction
+      const rotP  = clamp(raw / ROTATION_WINDOW, 0, 1);
+      targetDeg   = ease(rotP) * 360;
+
+      // Tagline fades in after spin is done
+      tagline.style.opacity = clamp((raw - 0.62) / 0.14, 0, 1);
+
+      // Scroll cue vanishes immediately
+      scrollCue.style.opacity = clamp(1 - raw * 18, 0, 1);
+
+      // Glow grows with progress
+      const glow  = 30 + rotP * 55;
+      const alpha = 0.28 + rotP * 0.30;
+      logoImg.style.filter = `drop-shadow(0 0 ${glow}px rgba(208,138,90,${alpha}))`;
+
+      if (!raf) raf = requestAnimationFrame(tick);
+    }, { passive: true });
+  </script>
+
+</body>
 </html>

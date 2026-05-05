@@ -570,8 +570,8 @@ function numberValue(value, fallback = 0) {
   const stepDetail = document.getElementById("stepDetail");
   const activeStepTitle = document.getElementById("activeStepTitle");
   const activeBottleneckBadge = document.getElementById("activeBottleneckBadge");
-  const recommendationList = document.getElementById("recommendationList");
-  const goalResponse = document.getElementById("goalResponse");
+  const recommendationList = document.getElementById("solutionsList");
+  const goalResponse = document.getElementById("goalSubtext");
   const lineStatus = document.getElementById("lineStatus");
   
   const builderMetricEls = {
@@ -705,7 +705,7 @@ function numberValue(value, fallback = 0) {
   function renderRecommendations(analysis) {
     if (!hasBuilderPage) return;
     
-    const targetContainer = document.getElementById("recommendationList");
+    const targetContainer = document.getElementById("solutionsList");
     if (!targetContainer) return;
 
     let allRecommendations = [];
